@@ -333,16 +333,25 @@ void renderGround(gps::Shader shader) {
     // select active shader program
     shader.useShaderProgram();
     //send teapot model matrix data to shader
-    modelGround = glm::rotate(88.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-    modelGround *= glm::scale(glm::vec3(0.1f, 0.1f, 0.1f));
-    modelGround *= glm::translate(glm::vec3(0.0f, -5.0f, 0.0f));
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelGround));
+    //modelGround = glm::rotate(88.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    modelGround *= glm::scale(glm::vec3(0.3f, 0.3f, 0.3f));
+    modelGround *= glm::translate(glm::vec3(0.0f, -4.0f, 0.0f));
+    float TranslatePlace = -4.0f;
+    glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
+    for (int i = 0; i < 20; i++) {
+        glm::mat4 modelGroundI = modelGround;
+        modelGround *= glm::translate(glm::vec3(0.0f, 0.0f , i*TranslatePlace));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelGround));
+        ground.Draw(shader);
+    }
+    //modelGround *= glm::translate(glm::vec3(0.0f, -7.0f, 0.0f));
+    
 
     //send teapot normal matrix data to shader
-    glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
+    
 
     // draw teapot
-    ground.Draw(shader);
+    
 
     //*********************************
     /*viewGround = myCamera.getViewMatrix();
