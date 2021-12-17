@@ -1,0 +1,6 @@
+https://www.glfw.org/docs/3.3/group__window.html
+https://www.khronos.org/registry/OpenGL-Refpages/
+https://www.glfw.org/docs/latest/quick.html
+https://www.glfw.org/docs/3.3/group__window.html
+https://learnopengl.com/Advanced-OpenGL/Depth-testing
+https://learnopengl.com/Advanced-OpenGL/Face-culling
