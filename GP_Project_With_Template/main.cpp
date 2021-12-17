@@ -34,6 +34,7 @@ GLint projectionLoc;
 GLint normalMatrixLoc;
 GLint lightDirLoc;
 GLint lightColorLoc;
+int worldSizeX = 50, worldSizeZ = 50;
 
 // camera
 gps::Camera myCamera(
@@ -50,6 +51,8 @@ const int GL_WINDOW_HEIGHT = 900;
 GLboolean pressedKeys[1024];
 // models
 gps::Model3D teapot;
+gps::Model3D ground;
+gps::Model3D bison;
 GLfloat angle;
 
 // shaders
@@ -182,8 +185,35 @@ void processMovement() {
         // update normal matrix for teapot
         normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
     }
-    if (pressedKeys[GLFW_KEY_X]) {
+    if (pressedKeys[GLFW_KEY_G]) {
         myCamera.rotate(0, cameraRotationAngle);
+        //update view matrix
+        view = myCamera.getViewMatrix();
+        myBasicShader.useShaderProgram();
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        // compute normal matrix for teapot
+        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
+    }
+    if (pressedKeys[GLFW_KEY_J]) {
+        myCamera.rotate(0, -cameraRotationAngle);
+        //update view matrix
+        view = myCamera.getViewMatrix();
+        myBasicShader.useShaderProgram();
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        // compute normal matrix for teapot
+        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
+    }
+    if (pressedKeys[GLFW_KEY_H]) {
+        myCamera.rotate(cameraRotationAngle, 0);
+        //update view matrix
+        view = myCamera.getViewMatrix();
+        myBasicShader.useShaderProgram();
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        // compute normal matrix for teapot
+        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
+    }
+    if (pressedKeys[GLFW_KEY_Y]) {
+        myCamera.rotate(-cameraRotationAngle, 0);
         //update view matrix
         view = myCamera.getViewMatrix();
         myBasicShader.useShaderProgram();
@@ -216,6 +246,8 @@ void initOpenGLState() {
 
 void initModels() {
     teapot.LoadModel("models/teapot/teapot20segUT.obj");
+    ground.LoadModel("models/ground/ground.obj");
+    bison.LoadModel("models/bison/Bison.obj");
 }
 
 void initShaders() {
@@ -275,14 +307,88 @@ void renderTeapot(gps::Shader shader) {
     // draw teapot
     teapot.Draw(shader);
 }
+void renderBison(gps::Shader shader) {
+    glm::mat4 modelBison(1.0f);
+    glm::mat4 viewBison;
+    glm::mat4 projectionBison;
+    glm::mat3 normalMatrixBison(1.0f);
+    // select active shader program
+    shader.useShaderProgram();
+    modelBison = glm::rotate(90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+    modelBison *= glm::scale(glm::vec3(2.0f, 2.0f, 2.0f));
+    //send teapot model matrix data to shader
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelBison));
 
+    //send teapot normal matrix data to shader
+    glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
+
+    // draw teapot
+    bison.Draw(shader);
+}
+void renderGround(gps::Shader shader) {
+    glm::mat4 modelGround(1.0f);
+    glm::mat4 viewGround;
+    glm::mat4 projectionGround;
+    glm::mat3 normalMatrixGround(1.0f);
+    // select active shader program
+    shader.useShaderProgram();
+    //send teapot model matrix data to shader
+    modelGround = glm::rotate(88.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    modelGround *= glm::scale(glm::vec3(0.1f, 0.1f, 0.1f));
+    modelGround *= glm::translate(glm::vec3(0.0f, -5.0f, 0.0f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelGround));
+
+    //send teapot normal matrix data to shader
+    glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
+
+    // draw teapot
+    ground.Draw(shader);
+
+    //*********************************
+    /*viewGround = myCamera.getViewMatrix();
+    modelGround = glm::mat4(1.0f);
+    //modelGround = glm::translate(modelGround, glm::vec3((-(10 + 20 * (worldSizeX / 2)) + 20 * i), 0, (-(10 + 20 * (worldSizeZ / 2)) + 20 * j)));
+
+    //send view matrix data to shader	
+    //glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+    //create normal matrix
+    normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
+    //send normal matrix data to shader
+    //glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
+    glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+    for (int i = 0; i < worldSizeX; i++) {
+        for (int j = 0; j < worldSizeZ; j++) {
+            //1
+            model = glm::mat4(1.0f);
+
+            model = glm::translate(model, glm::vec3((-(10 + 20 * (worldSizeX / 2)) + 20 * i), 0, (-(10 + 20 * (worldSizeZ / 2)) + 20 * j)));
+
+            view = myCamera.getViewMatrix();
+
+            glm::vec4 pos = view * model * glm::vec4(0, 0, 0, 1);
+
+            pos.x = pos.x / pos.w;
+            pos.z = pos.z / pos.w;
+
+            if (pos.x < -40 || pos.z < -80 || pos.x > 40 || pos.z > 20)
+                continue;
+            
+
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            ground.Draw(shader);
+        }
+    }*/
+}
 void renderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//render the scene
 
+    //renderTeapot(myBasicShader);
+    //renderBison(myBasicShader);
+    renderGround(myBasicShader);
 	// render the teapot
-	renderTeapot(myBasicShader);
 
 }
 
