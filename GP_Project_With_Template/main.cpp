@@ -42,9 +42,12 @@ gps::Camera myCamera(
     glm::vec3(0.0f, 1.0f, 0.0f));
 
 GLfloat cameraSpeed = 0.1f;
+GLfloat cameraRotationAngle = 0.01f;
+
+const int GL_WINDOW_WIDTH = 1640;
+const int GL_WINDOW_HEIGHT = 900;
 
 GLboolean pressedKeys[1024];
-
 // models
 gps::Model3D teapot;
 GLfloat angle;
@@ -165,10 +168,33 @@ void processMovement() {
         // update normal matrix for teapot
         normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
     }
+    if (pressedKeys[GLFW_KEY_R]) {
+        angle -= 1.0f;
+        // update model matrix for teapot
+        model = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1, 0, 0));
+        // update normal matrix for teapot
+        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
+    }
+    if (pressedKeys[GLFW_KEY_T]) {
+        angle += 1.0f;
+        // update model matrix for teapot
+        model = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1, 0, 0));
+        // update normal matrix for teapot
+        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
+    }
+    if (pressedKeys[GLFW_KEY_X]) {
+        myCamera.rotate(0, cameraRotationAngle);
+        //update view matrix
+        view = myCamera.getViewMatrix();
+        myBasicShader.useShaderProgram();
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        // compute normal matrix for teapot
+        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
+    }
 }
 
 void initOpenGLWindow() {
-    myWindow.Create(1024, 768, "OpenGL Project Core");
+    myWindow.Create(GL_WINDOW_WIDTH, GL_WINDOW_HEIGHT, "OpenGL Project Iulia");
 }
 
 void setWindowCallbacks() {
@@ -179,7 +205,7 @@ void setWindowCallbacks() {
 
 void initOpenGLState() {
 	glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
-	glViewport(0, 0, myWindow.getWindowDimensions().width, myWindow.getWindowDimensions().height);
+	glViewport(0, 0, GL_WINDOW_WIDTH, GL_WINDOW_HEIGHT);
     glEnable(GL_FRAMEBUFFER_SRGB);
 	glEnable(GL_DEPTH_TEST); // enable depth-testing
 	glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
