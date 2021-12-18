@@ -53,6 +53,7 @@ GLboolean pressedKeys[1024];
 gps::Model3D teapot;
 gps::Model3D ground;
 gps::Model3D bison;
+gps::Model3D grass_ground;
 GLfloat angle;
 
 // shaders
@@ -116,6 +117,10 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 }
 
 void processMovement() {
+    if (pressedKeys[GLFW_KEY_P]) {
+        std::cout << myCamera.getCameraPosition().x << " " << myCamera.getCameraPosition().y << " " << myCamera.getCameraPosition().z << "\n";
+        
+    }
 	if (pressedKeys[GLFW_KEY_W]) {
 		myCamera.move(gps::MOVE_FORWARD, cameraSpeed);
 		//update view matrix
@@ -248,6 +253,7 @@ void initModels() {
     teapot.LoadModel("models/teapot/teapot20segUT.obj");
     ground.LoadModel("models/ground/ground.obj");
     bison.LoadModel("models/bison/Bison.obj");
+    grass_ground.LoadModel("models/gnd/grass.obj");
 }
 
 void initShaders() {
@@ -316,6 +322,7 @@ void renderBison(gps::Shader shader) {
     shader.useShaderProgram();
     modelBison = glm::rotate(90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
     modelBison *= glm::scale(glm::vec3(2.0f, 2.0f, 2.0f));
+    modelBison *= glm::translate(glm::vec3(0.0f, -0.7f, 0.0f));
     //send teapot model matrix data to shader
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelBison));
 
@@ -325,6 +332,7 @@ void renderBison(gps::Shader shader) {
     // draw teapot
     bison.Draw(shader);
 }
+
 void renderGround(gps::Shader shader) {
     glm::mat4 modelGround(1.0f);
     glm::mat4 viewGround;
@@ -334,16 +342,24 @@ void renderGround(gps::Shader shader) {
     shader.useShaderProgram();
     //send teapot model matrix data to shader
     //modelGround = glm::rotate(88.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-    modelGround *= glm::scale(glm::vec3(0.3f, 0.3f, 0.3f));
-    modelGround *= glm::translate(glm::vec3(0.0f, -4.0f, 0.0f));
-    float TranslatePlace = -4.0f;
+    //modelGround *= glm::scale(glm::vec3(1.0f, 0.3f, 0.3f));
+    //modelGround *= glm::translate(glm::vec3(0.0f, -4.0f, 0.0f));
+    float TranslatePlace = -20.0f;
     glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
-    for (int i = 0; i < 20; i++) {
-        glm::mat4 modelGroundI = modelGround;
+    for (int i = 0; i < worldSizeX; i++) {
+        for (int j = 0; j < worldSizeZ; j++) {
+            modelGround = glm::mat4(1.0f);
+            modelGround *= glm::translate(glm::vec3(0.0f, -2.0f, 0.0f));
+            modelGround = glm::translate(modelGround, glm::vec3((-(10 + 20 * (worldSizeX / 2)) + 20 * i), 0, (-(10 + 20 * (worldSizeX / 2)) + 20 * j)));
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelGround));
+            ground.Draw(shader);
+        }
+    }
+        /*glm::mat4 modelGroundI = modelGround;
         modelGround *= glm::translate(glm::vec3(0.0f, 0.0f , i*TranslatePlace));
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelGround));
         ground.Draw(shader);
-    }
+    }*/
     //modelGround *= glm::translate(glm::vec3(0.0f, -7.0f, 0.0f));
     
 
@@ -395,8 +411,10 @@ void renderScene() {
 	//render the scene
 
     //renderTeapot(myBasicShader);
-    //renderBison(myBasicShader);
+    
     renderGround(myBasicShader);
+    renderBison(myBasicShader);
+    //renderGrassGround(myBasicShader);
 	// render the teapot
 
 }
