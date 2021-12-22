@@ -26,6 +26,7 @@ glm::mat3 normalMatrix;
 // light parameters
 glm::vec3 lightDir;
 glm::vec3 lightColor;
+const GLfloat near_plane = 0.1f, far_plane = 7.5f;
 
 // shader uniform locations
 GLint modelLoc;
@@ -35,6 +36,8 @@ GLint normalMatrixLoc;
 GLint lightDirLoc;
 GLint lightColorLoc;
 int worldSizeX = 50, worldSizeZ = 50;
+GLuint depthMapFBO, depthMap;
+const unsigned int SHADOW_WIDTH=1024, SHADOW_HEIGHT = 1024;
 
 // camera
 gps::Camera myCamera(
@@ -56,7 +59,7 @@ gps::Model3D bison;
 GLfloat angle;
 
 // shaders
-gps::Shader myBasicShader;
+gps::Shader myBasicShader, shadowShader;
 
 GLenum glCheckError_(const char *file, int line)
 {
@@ -258,6 +261,9 @@ void initShaders() {
 	myBasicShader.loadShader(
         "shaders/basic.vert",
         "shaders/basic.frag");
+    shadowShader.loadShader(
+        "shaders/shadow.vert",
+        "shaders/shadow.frag");
 }
 
 void initUniforms() {
@@ -276,7 +282,6 @@ void initUniforms() {
     // compute normal matrix for teapot
     normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
 	normalMatrixLoc = glGetUniformLocation(myBasicShader.shaderProgram, "normalMatrix");
-
 	// create projection matrix
 	projection = glm::perspective(glm::radians(45.0f),
                                (float)myWindow.getWindowDimensions().width / (float)myWindow.getWindowDimensions().height,
@@ -303,10 +308,16 @@ void renderTeapot(gps::Shader shader) {
     shader.useShaderProgram();
 
     //send teapot model matrix data to shader
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    /*if (shader.shaderProgram == myBasicShader.shaderProgram) {
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+    }*/
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
+
 
     //send teapot normal matrix data to shader
-    glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+    //glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
 
     // draw teapot
     teapot.Draw(shader);
@@ -322,10 +333,17 @@ void renderBison(gps::Shader shader) {
     modelBison *= glm::scale(glm::vec3(2.0f, 2.0f, 2.0f));
     modelBison *= glm::translate(glm::vec3(0.0f, -0.7f, 0.0f));
     //send teapot model matrix data to shader
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelBison));
+    /*if (shader.shaderProgram == myBasicShader.shaderProgram) {
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelBison));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
+    }*/
+
+
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelBison));
+    glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
 
     //send teapot normal matrix data to shader
-    glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
+    //glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
 
     // draw teapot
     bison.Draw(shader);
@@ -342,23 +360,67 @@ void renderGround(gps::Shader shader) {
     //modelGround *= glm::scale(glm::vec3(1.0f, 0.3f, 0.3f));
     //modelGround *= glm::translate(glm::vec3(0.0f, -4.0f, 0.0f));
     float TranslatePlace = -20.0f;
-    glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
+    //if (shader.shaderProgram == myBasicShader.shaderProgram)
+       // glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
+    glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
     for (int i = 0; i < worldSizeX; i++) {
         for (int j = 0; j < worldSizeZ; j++) {
             modelGround = glm::mat4(1.0f);
             modelGround *= glm::translate(glm::vec3(0.0f, -2.0f, 0.0f));
             modelGround = glm::translate(modelGround, glm::vec3((-(10 + 20 * (worldSizeX / 2)) + 20 * i), 0, (-(10 + 20 * (worldSizeX / 2)) + 20 * j)));
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelGround));
+            //if (shader.shaderProgram == myBasicShader.shaderProgram)
+                //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelGround));
+            glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelGround));
             ground.Draw(shader);
         }
     }
 }
-void renderScene() {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    renderTeapot(myBasicShader);
-    renderGround(myBasicShader);
-    renderBison(myBasicShader);
+glm::mat4 lightSpaceMatrix()
+{
+    //glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+    //glm::mat4 lightView = glm::lookAt(myCamera.getCameraPosition() + 5.0f * lightDir, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    //glm::mat4 lightView = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 lightView = glm::lookAt(lightDir, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 lightProjection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, near_plane, far_plane);
+
+    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+    return lightSpaceMatrix;
+}
+void renderScene(gps::Shader shader) {
+    shader.useShaderProgram();
+    renderGround(shader);
+    renderTeapot(shader);
+    renderBison(shader);
+
+}
+
+void computeDepthMapAndRender() {
+    shadowShader.useShaderProgram();
+    glUniformMatrix4fv(glGetUniformLocation(shadowShader.shaderProgram, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix()));
+    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    renderScene(shadowShader);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void renderScene() {
+    computeDepthMapAndRender();
+
+    myBasicShader.useShaderProgram();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, GL_WINDOW_WIDTH, GL_WINDOW_HEIGHT);
+    glUniformMatrix4fv(glGetUniformLocation(myBasicShader.shaderProgram, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix()));
+    //initialize the view matrix
+    view = myCamera.getViewMatrix();
+    //send view matrix data to shader	
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glActiveTexture(GL_TEXTURE5);
+    glUniform1i(glGetUniformLocation(myBasicShader.shaderProgram, "shadowMap"), 5);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    renderScene(myBasicShader);
 
 }
 
@@ -366,6 +428,28 @@ void cleanup() {
     myWindow.Delete();
     //cleanup code for your own data
 }
+
+void initialize_shadow_things() {
+    glGenFramebuffers(1, &depthMapFBO);
+
+    //create depth texture for FBO
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    //attach texture to FBO
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+
 
 int main(int argc, const char * argv[]) {
 
@@ -381,6 +465,7 @@ int main(int argc, const char * argv[]) {
 	initShaders();
 	initUniforms();
     setWindowCallbacks();
+    initialize_shadow_things();
 
 	glCheckError();
 	// application loop

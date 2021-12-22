@@ -1,8 +1,9 @@
 #version 410 core
 
-in vec3 fPosition;
+in vec4 fPosEye;
 in vec3 fNormal;
 in vec2 fTexCoords;
+in vec4 fPosLightSpace;
 
 out vec4 fColor;
 
@@ -16,6 +17,7 @@ uniform vec3 lightColor;
 // textures
 uniform sampler2D diffuseTexture;
 uniform sampler2D specularTexture;
+uniform sampler2D shadowMap;
 
 //components
 vec3 ambient;
@@ -27,7 +29,7 @@ float specularStrength = 0.5f;
 void computeDirLight()
 {
     //compute eye space coordinates
-    vec4 fPosEye = view * model * vec4(fPosition, 1.0f);
+    //vec4 fPosEye = view * model * vec4(fPosition, 1.0f);
     vec3 normalEye = normalize(normalMatrix * fNormal);
 
     //normalize light direction
@@ -48,12 +50,40 @@ void computeDirLight()
     specular = specularStrength * specCoeff * lightColor;
 }
 
+float computeShadow()
+{
+	// perform perspective divide
+	vec3 normalizedCoords = fPosLightSpace.xyz / fPosLightSpace.w;
+	
+	// Transform to [0,1] range
+	normalizedCoords = normalizedCoords * 0.5 + 0.5;
+	
+	if (normalizedCoords.z > 1.0f)
+		return 0.0f;
+	
+	// Get closest depth value from light's perspective
+	float closestDepth = texture(shadowMap, normalizedCoords.xy).r;
+//o = vec3(closestDepth);	
+	// Get depth of current fragment from light's perspective
+	float currentDepth = normalizedCoords.z;
+	
+	// Check whether current frag pos is in shadow
+	float bias = 0.005;
+	float shadow = currentDepth -bias > closestDepth ? 1.0 : 0.0;
+	
+	//return 1.0f;
+	return shadow;
+
+}
+
 void main() 
 {
     computeDirLight();
+    float shadow = computeShadow();
 
     //compute final vertex color
-    vec3 color = min((ambient + diffuse) * texture(diffuseTexture, fTexCoords).rgb + specular * texture(specularTexture, fTexCoords).rgb, 1.0f);
-
+    //vec3 color = min((ambient + diffuse) * texture(diffuseTexture, fTexCoords).rgb + specular * texture(specularTexture, fTexCoords).rgb, 1.0f);
+    vec3 color = min((ambient + shadow*diffuse) * texture(diffuseTexture, fTexCoords).rgb + shadow*specular * texture(specularTexture, fTexCoords).rgb, 1.0f);
+    //vec3 color = min((ambient + (1.0f -shadow)*diffuse) + (1.0f -shadow)*specular, 1.0f);
     fColor = vec4(color, 1.0f);
 }
