@@ -66,7 +66,7 @@ gps::Model3D screenQuad;
 GLfloat angle;
 
 // shaders
-gps::Shader myBasicShader, shadowShader, lightShader, screenQuadShader, depthMapShader, skyboxShader;
+gps::Shader myBasicShader, shadowShader, lightShader, depthMapShader, skyboxShader;
 
 
 GLenum glCheckError_(const char *file, int line)
@@ -269,19 +269,14 @@ void initModels() {
 }
 
 void initShaders() {
-	/*myBasicShader.loadShader(
-        "shaders/basic.vert",
-        "shaders/basic.frag");*/
     myBasicShader.loadShader(
-        "shaders/shaderStart.vert",
-        "shaders/shaderStart.frag");
+        "shaders/basic.vert",
+        "shaders/basic.frag");
     shadowShader.loadShader(
         "shaders/shadow.vert",
         "shaders/shadow.frag");
     lightShader.loadShader("shaders/lightCube.vert", "shaders/lightCube.frag");
     lightShader.useShaderProgram();
-    screenQuadShader.loadShader("shaders/screenQuad.vert", "shaders/screenQuad.frag");
-    screenQuadShader.useShaderProgram();
     depthMapShader.loadShader("shaders/depthMapShader.vert", "shaders/depthMapShader.frag");
     depthMapShader.useShaderProgram();
 }
@@ -472,14 +467,14 @@ void drawWhiteCubeAroundLight() {
 
     lightCube.Draw(lightShader);
 
-    mySkyBox.Draw(skyboxShader, view, projection);
+    
 }
 
 void renderScene() {
     computeDepthMapAndRender();
     renderWithBasicShader();
     drawWhiteCubeAroundLight();
-
+    mySkyBox.Draw(skyboxShader, view, projection);
 }
 
 void cleanup() {

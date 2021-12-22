@@ -1,9 +1,9 @@
 #version 410 core
 
-in vec4 fPosEye;
+in vec3 fPosition;
 in vec3 fNormal;
 in vec2 fTexCoords;
-in vec4 fPosLightSpace;
+in vec4 fragPosLightSpace;
 
 out vec4 fColor;
 
@@ -25,11 +25,12 @@ float ambientStrength = 0.2f;
 vec3 diffuse;
 vec3 specular;
 float specularStrength = 0.5f;
+float shininess = 32.0f;
 
 void computeDirLight()
 {
     //compute eye space coordinates
-    //vec4 fPosEye = view * model * vec4(fPosition, 1.0f);
+    vec4 fPosEye = view * model * vec4(fPosition, 1.0f);
     vec3 normalEye = normalize(normalMatrix * fNormal);
 
     //normalize light direction
@@ -46,44 +47,44 @@ void computeDirLight()
 
     //compute specular light
     vec3 reflectDir = reflect(-lightDirN, normalEye);
-    float specCoeff = pow(max(dot(viewDir, reflectDir), 0.0f), 32);
+    float specCoeff = pow(max(dot(viewDir, reflectDir), 0.0f), shininess);
     specular = specularStrength * specCoeff * lightColor;
 }
 
 float computeShadow()
 {
-	// perform perspective divide
-	vec3 normalizedCoords = fPosLightSpace.xyz / fPosLightSpace.w;
-	
-	// Transform to [0,1] range
+
+	//perform perspective divide
+	vec3 normalizedCoords= fragPosLightSpace.xyz / fragPosLightSpace.w;
+
+	//tranform from [-1,1] range to [0,1] range
 	normalizedCoords = normalizedCoords * 0.5 + 0.5;
-	
+
+	//get closest depth value from lights perspective
+	float closestDepth = texture(shadowMap, normalizedCoords.xy).r;
+
+	//get depth of current fragment from lights perspective
+	float currentDepth = normalizedCoords.z;
+
+	//if the current fragments depth is greater than the value in the depth map, the current fragment is in shadow 
+	//else it is illuminated
+	//float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+	float bias = 0.005f;
+	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 	if (normalizedCoords.z > 1.0f)
 		return 0.0f;
-	
-	// Get closest depth value from light's perspective
-	float closestDepth = texture(shadowMap, normalizedCoords.xy).r;
-//o = vec3(closestDepth);	
-	// Get depth of current fragment from light's perspective
-	float currentDepth = normalizedCoords.z;
-	
-	// Check whether current frag pos is in shadow
-	float bias = 0.005;
-	float shadow = currentDepth -bias > closestDepth ? 1.0 : 0.0;
-	
-	//return 1.0f;
 	return shadow;
-
 }
 
 void main() 
 {
     computeDirLight();
-    float shadow = computeShadow();
+    ambient *= texture(diffuseTexture, fTexCoords).rgb;
+    diffuse *= texture(diffuseTexture, fTexCoords).rgb;
+    specular *= texture(specularTexture, fTexCoords).rgb;
 
+    float shadow = computeShadow();
     //compute final vertex color
-    //vec3 color = min((ambient + diffuse) * texture(diffuseTexture, fTexCoords).rgb + specular * texture(specularTexture, fTexCoords).rgb, 1.0f);
-    vec3 color = min((ambient + shadow*diffuse) * texture(diffuseTexture, fTexCoords).rgb + shadow*specular * texture(specularTexture, fTexCoords).rgb, 1.0f);
-    //vec3 color = min((ambient + (1.0f -shadow)*diffuse) + (1.0f -shadow)*specular, 1.0f);
+    vec3 color = min((ambient + (1.0f - shadow) * diffuse) + (1.0f - shadow) * specular, 1.0f);
     fColor = vec4(color, 1.0f);
 }
