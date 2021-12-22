@@ -31,6 +31,12 @@ glm::mat3 normalMatrix;
 glm::vec3 lightDir;
 glm::vec3 lightColor;
 const GLfloat near_plane = 0.1f, far_plane = 7.5f;
+GLfloat timeOfDay=1.0f;
+float timeSpeed=0.002;
+bool increaseLight=false;
+bool stayLightOrDark = false;
+float timeLightOrDark = 100 * timeSpeed;
+GLint timeOfDayLoc;
 
 // shader uniform locations
 GLint modelLoc;
@@ -133,6 +139,8 @@ void processMovement() {
     }
 	if (pressedKeys[GLFW_KEY_W]) {
 		myCamera.move(gps::MOVE_FORWARD, cameraSpeed);
+        lightDir = myCamera.getCameraPosition() - myCamera.getCameraTarget();
+        std::cout << lightDir.x << " " << lightDir.y << " " << lightDir.z << "\n";
 		//update view matrix
         view = myCamera.getViewMatrix();
         myBasicShader.useShaderProgram();
@@ -143,6 +151,8 @@ void processMovement() {
 
 	if (pressedKeys[GLFW_KEY_S]) {
 		myCamera.move(gps::MOVE_BACKWARD, cameraSpeed);
+        lightDir = myCamera.getCameraPosition() - myCamera.getCameraTarget();
+        std::cout << lightDir.x << " " << lightDir.y << " " << lightDir.z << "\n";
         //update view matrix
         view = myCamera.getViewMatrix();
         myBasicShader.useShaderProgram();
@@ -153,6 +163,8 @@ void processMovement() {
 
 	if (pressedKeys[GLFW_KEY_A]) {
 		myCamera.move(gps::MOVE_LEFT, cameraSpeed);
+        lightDir = myCamera.getCameraPosition() - myCamera.getCameraTarget();
+        std::cout << lightDir.x << " " << lightDir.y << " " << lightDir.z << "\n";
         //update view matrix
         view = myCamera.getViewMatrix();
         myBasicShader.useShaderProgram();
@@ -163,6 +175,8 @@ void processMovement() {
 
 	if (pressedKeys[GLFW_KEY_D]) {
 		myCamera.move(gps::MOVE_RIGHT, cameraSpeed);
+        lightDir = myCamera.getCameraPosition() - myCamera.getCameraTarget();
+        std::cout << lightDir.x << " " << lightDir.y << " " << lightDir.z << "\n";
         //update view matrix
         view = myCamera.getViewMatrix();
         myBasicShader.useShaderProgram();
@@ -284,6 +298,9 @@ void initShaders() {
 void initUniforms() {
 	myBasicShader.useShaderProgram();
 
+    timeOfDayLoc = glGetUniformLocation(myBasicShader.shaderProgram, "timeOfDay");
+    glUniform1f(timeOfDayLoc, timeOfDay);
+
     model = glm::mat4(1.0f);
     modelLoc = glGetUniformLocation(myBasicShader.shaderProgram, "model");
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -301,7 +318,8 @@ void initUniforms() {
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
 	//set the light direction (direction towards the light)
-	lightDir = glm::vec3(0.0f, 1.0f, 1.0f);
+	lightDir = glm::vec3(0.0f, 1.0f, 30.0f);
+    lightDir = myCamera.getCameraPosition() - myCamera.getCameraTarget();
 	lightDirLoc = glGetUniformLocation(myBasicShader.shaderProgram, "lightDir");
 	// send light dir to shader
 	glUniform3fv(lightDirLoc, 1, glm::value_ptr(lightDir));
@@ -443,6 +461,14 @@ void renderWithBasicShader() {
     myBasicShader.useShaderProgram();
     view = myCamera.getViewMatrix();
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+
+    //std::cout << lightDir.x << " " << lightDir.y << " " << lightDir.z << "\n";
+    lightDirLoc = glGetUniformLocation(myBasicShader.shaderProgram, "lightDir");
+    // send light dir to shader
+    //glUniform3fv(lightDirLoc, 1, glm::value_ptr(lightDir));
+
+
+
     glUniform3fv(lightDirLoc, 1, glm::value_ptr(lightDir));
     //bind the shadow map
     glActiveTexture(GL_TEXTURE3);
@@ -451,6 +477,9 @@ void renderWithBasicShader() {
 
 
     glUniformMatrix4fv(glGetUniformLocation(myBasicShader.shaderProgram, "lightSpaceTrMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix()));
+    timeOfDayLoc = glGetUniformLocation(myBasicShader.shaderProgram, "timeOfDay");
+    glUniform1f(timeOfDayLoc, timeOfDay);
+    
     renderScene(myBasicShader, false);
 
 }
@@ -461,6 +490,7 @@ void drawWhiteCubeAroundLight() {
     glUniformMatrix4fv(glGetUniformLocation(lightShader.shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
     model = glm::mat4(1.0f);
+    lightDir = myCamera.getCameraPosition() - myCamera.getCameraTarget();
     model = glm::translate(model, 1.0f * lightDir);
     model = glm::scale(model, glm::vec3(0.05f, 0.05f, 0.05f));
     glUniformMatrix4fv(glGetUniformLocation(lightShader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -474,6 +504,10 @@ void renderScene() {
     computeDepthMapAndRender();
     renderWithBasicShader();
     drawWhiteCubeAroundLight();
+
+    skyboxShader.useShaderProgram();
+    timeOfDayLoc = glGetUniformLocation(skyboxShader.shaderProgram, "timeOfDay");
+    glUniform1f(timeOfDayLoc, timeOfDay);
     mySkyBox.Draw(skyboxShader, view, projection);
 }
 
@@ -520,6 +554,9 @@ void initSkyBox()
     mySkyBox.Load(faces);
     skyboxShader.loadShader("shaders/skyboxShader.vert", "shaders/skyboxShader.frag");
     skyboxShader.useShaderProgram();
+
+    timeOfDayLoc = glGetUniformLocation(skyboxShader.shaderProgram, "timeOfDay");
+    glUniform1f(timeOfDayLoc, timeOfDay);
     view = myCamera.getViewMatrix();
     glUniformMatrix4fv(glGetUniformLocation(skyboxShader.shaderProgram, "view"), 1, GL_FALSE,
         glm::value_ptr(view));
@@ -527,6 +564,38 @@ void initSkyBox()
     projection = glm::perspective(glm::radians(45.0f), (float)GL_WINDOW_WIDTH / (float)GL_WINDOW_HEIGHT, 0.1f, 1000.0f);
     glUniformMatrix4fv(glGetUniformLocation(skyboxShader.shaderProgram, "projection"), 1, GL_FALSE,
         glm::value_ptr(projection));
+}
+
+void processTimePassing() {
+    if (stayLightOrDark) {
+        if (timeLightOrDark <= 0.0f) {
+            stayLightOrDark = false;
+        }
+        else timeLightOrDark -= timeSpeed;
+    }
+    else {
+        if (increaseLight) {
+            if (timeOfDay == 1.0f) {
+                increaseLight = false;
+                stayLightOrDark = true;
+                timeLightOrDark = 200 * timeSpeed;
+            }
+            else {
+                timeOfDay += timeSpeed;
+            }
+        }
+        else {
+            if (timeOfDay <= 0.00f) {
+                increaseLight = true;
+                stayLightOrDark = true;
+                timeLightOrDark = 200 * timeSpeed;
+            }
+            else {
+                timeOfDay -= timeSpeed;
+            }
+        }
+    }
+    
 }
 
 int main(int argc, const char * argv[]) {
@@ -549,6 +618,7 @@ int main(int argc, const char * argv[]) {
 	glCheckError();
 	// application loop
 	while (!glfwWindowShouldClose(myWindow.getWindow())) {
+        processTimePassing();
         processMovement();
 	    renderScene();
 

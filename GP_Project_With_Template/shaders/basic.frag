@@ -14,6 +14,7 @@ uniform mat3 normalMatrix;
 //lighting
 uniform vec3 lightDir;
 uniform vec3 lightColor;
+uniform float timeOfDay;
 // textures
 uniform sampler2D diffuseTexture;
 uniform sampler2D specularTexture;
@@ -40,10 +41,10 @@ void computeDirLight()
     vec3 viewDir = normalize(- fPosEye.xyz);
 
     //compute ambient light
-    ambient = ambientStrength * lightColor;
+    ambient = ambientStrength * lightColor * timeOfDay;
 
     //compute diffuse light
-    diffuse = max(dot(normalEye, lightDirN), 0.0f) * lightColor;
+    diffuse = max(dot(normalEye, lightDirN), 0.0f) * lightColor * timeOfDay;
 
     //compute specular light
     vec3 reflectDir = reflect(-lightDirN, normalEye);
