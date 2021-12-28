@@ -43,10 +43,10 @@ int worldSizeX = 50, worldSizeZ = 50;
 GLuint shadowMapFBO, depthMapTexture;
 const unsigned int SHADOW_WIDTH=1024, SHADOW_HEIGHT = 1024;
 GLfloat timeOfDay = 1.0f;
-float timeSpeed = 0.002;
+float timeSpeed = 0.001;
 bool increaseLight = false;
-bool stayLightOrDark = false;
-float timeLightOrDark = 100 * timeSpeed;
+bool stayLightOrDark = true;
+float timeLightOrDark = 200 * timeSpeed;
 GLint timeOfDayLoc;
 
 // camera
@@ -68,7 +68,6 @@ gps::Model3D ground;
 gps::Model3D bison;
 gps::Model3D nanosuit;
 gps::Model3D lightCube;
-gps::Model3D screenQuad;
 GLfloat angle;
 
 // shaders
@@ -271,7 +270,6 @@ void initModels() {
     bison.LoadModel("models/bison/Bison.obj");
     nanosuit.LoadModel("models/nanosuit/nanosuit.obj");
     lightCube.LoadModel("models/cube/cube.obj");
-    screenQuad.LoadModel("models/quad/quad.obj");
 }
 
 void initShaders() {
@@ -310,6 +308,7 @@ void initUniforms() {
 
 	//set the light direction (direction towards the light)
 	lightDir = glm::vec3(0.0f, 1.0f, 1.0f);
+    //(0.0f, 0.0f, 7.0f),
 	lightDirLoc = glGetUniformLocation(myBasicShader.shaderProgram, "lightDir");
 	// send light dir to shader
 	glUniform3fv(lightDirLoc, 1, glm::value_ptr(lightDir));
@@ -329,6 +328,33 @@ void renderTeapot(gps::Shader shader, bool depthPass) {
     // select active shader program
     //shader.useShaderProgram();
     glm::mat4 modelTeapot(1.0f);
+    glm::mat3 normalMatrixTeapot(1.0f);
+
+    //send teapot model matrix data to shader
+    /*if (shader.shaderProgram == myBasicShader.shaderProgram) {
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+    }*/
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelTeapot));
+    if (!depthPass) {
+        normalMatrixTeapot = glm::mat3(glm::inverseTranspose(view * modelTeapot));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixTeapot));
+    }
+    //glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
+
+
+    //send teapot normal matrix data to shader
+    //glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+
+    // draw teapot
+    teapot.Draw(shader);
+}
+
+void renderTeapot2(gps::Shader shader, bool depthPass) {
+    // select active shader program
+    //shader.useShaderProgram();
+    glm::mat4 modelTeapot(1.0f);
+    modelTeapot = glm::translate(modelTeapot, glm::vec3(0.0f, 0.0f, 10.0f));
     glm::mat3 normalMatrixTeapot(1.0f);
 
     //send teapot model matrix data to shader
@@ -430,6 +456,7 @@ void renderScene(gps::Shader shader, bool depthPass) {
     renderGround(shader, depthPass);
     renderTeapot(shader, depthPass);
     renderBison(shader, depthPass);
+    renderTeapot2(shader, depthPass);
 
 }
 
@@ -473,10 +500,10 @@ void drawWhiteCubeAroundLight() {
 
     glUniformMatrix4fv(glGetUniformLocation(lightShader.shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, 1.0f * lightDir);
-    model = glm::scale(model, glm::vec3(0.05f, 0.05f, 0.05f));
-    glUniformMatrix4fv(glGetUniformLocation(lightShader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+    glm::mat4 modelLightCube = glm::mat4(1.0f);
+    modelLightCube = glm::translate(modelLightCube, 1.0f * lightDir);
+    modelLightCube = glm::scale(modelLightCube, glm::vec3(0.05f, 0.05f, 0.05f));
+    glUniformMatrix4fv(glGetUniformLocation(lightShader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelLightCube));
 
     lightCube.Draw(lightShader);
 
@@ -528,13 +555,13 @@ void initialize_shadow_things() {
 
 void initSkyBox()
 {
-
     faces.push_back("textures/skybox/right.tga");
     faces.push_back("textures/skybox/left.tga");
     faces.push_back("textures/skybox/top.tga");
     faces.push_back("textures/skybox/bottom.tga");
     faces.push_back("textures/skybox/back.tga");
     faces.push_back("textures/skybox/front.tga");
+    
     mySkyBox.Load(faces);
     skyboxShader.loadShader("shaders/skyboxShader.vert", "shaders/skyboxShader.frag");
     skyboxShader.useShaderProgram();
