@@ -42,9 +42,9 @@ GLint lightColorLoc;
 int worldSizeX = 50, worldSizeZ = 50;
 GLuint shadowMapFBO, depthMapTexture;
 const unsigned int SHADOW_WIDTH=1024, SHADOW_HEIGHT = 1024;
-GLfloat timeOfDay = 0.0f;
+GLfloat timeOfDay = 1.0f;
 float timeSpeed = 0.001;
-bool increaseLight = true;
+bool increaseLight = false;
 bool stayLightOrDark = true;
 float timeLightOrDark = 200 * timeSpeed;
 GLint timeOfDayLoc;
@@ -66,8 +66,8 @@ GLboolean pressedKeys[1024];
 gps::Model3D teapot;
 gps::Model3D ground;
 gps::Model3D bison;
-gps::Model3D nanosuit;
 gps::Model3D lightCube;
+gps::Model3D tree;
 GLfloat angle;
 
 // shaders
@@ -268,7 +268,7 @@ void initModels() {
     teapot.LoadModel("models/teapot/teapot20segUT.obj");
     ground.LoadModel("models/ground/ground.obj");
     bison.LoadModel("models/bison/Bison.obj");
-    nanosuit.LoadModel("models/nanosuit/nanosuit.obj");
+    tree.LoadModel("models/tree/trees9.obj");
     lightCube.LoadModel("models/cube/cube.obj");
 }
 
@@ -307,7 +307,7 @@ void initUniforms() {
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
 	//set the light direction (direction towards the light)
-	lightDir = glm::vec3(0.0f, 1.0f, 1.0f);
+	lightDir = glm::vec3(0.0f, 2.0f, 1.0f);
     //(0.0f, 0.0f, 7.0f),
 	lightDirLoc = glGetUniformLocation(myBasicShader.shaderProgram, "lightDir");
 	// send light dir to shader
@@ -351,6 +351,34 @@ void renderTeapot(gps::Shader shader, bool depthPass) {
 
     // draw teapot
     teapot.Draw(shader);
+}
+
+void renderTree(gps::Shader shader, bool depthPass) {
+    // select active shader program
+    //shader.useShaderProgram();
+    glm::mat4 modelTree(1.0f);
+    modelTree = glm::scale(modelTree, glm::vec3(0.1f, 0.1f, 0.1f));
+    modelTree = glm::translate(modelTree, glm::vec3(0.0f, -20.0f, 0.0f));
+    glm::mat3 normalMatrixTree(1.0f);
+
+    //send teapot model matrix data to shader
+    /*if (shader.shaderProgram == myBasicShader.shaderProgram) {
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+    }*/
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelTree));
+    if (!depthPass) {
+        normalMatrixTree = glm::mat3(glm::inverseTranspose(view * modelTree));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixTree));
+    }
+    //glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
+
+
+    //send teapot normal matrix data to shader
+    //glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+
+    // draw teapot
+    tree.Draw(shader);
 }
 
 void renderTeapot2(gps::Shader shader, bool depthPass) {
@@ -408,6 +436,17 @@ void renderBison(gps::Shader shader, bool depthPass) {
 
     // draw teapot
     bison.Draw(shader);
+
+    //bison 2
+    modelBison *= glm::translate(glm::vec3(1.0f, 0.0f, -1.0f));
+    
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelBison));
+    if (!depthPass) {
+        normalMatrixBison = glm::mat3(glm::inverseTranspose(view * modelBison));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
+    }
+    
+    bison.Draw(shader);
 }
 
 void renderGround(gps::Shader shader, bool depthPass) {
@@ -448,8 +487,10 @@ glm::mat4 lightSpaceMatrix()
     //glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
     //glm::mat4 lightView = glm::lookAt(myCamera.getCameraPosition() + 5.0f * lightDir, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     //glm::mat4 lightView = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 lightView = glm::lookAt(lightDir, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 lightProjection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, near_plane, far_plane);
+    glm::mat4 lightView = glm::lookAt(glm::vec3(0.0f,5.0f,0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    //glm::mat4 lightView = glm::lookAt(lightDir, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    //glm::mat4 lightProjection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, near_plane, far_plane);
+    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 
     glm::mat4 lightSpaceMatrix = lightProjection * lightView;
     return lightSpaceMatrix;
@@ -457,9 +498,10 @@ glm::mat4 lightSpaceMatrix()
 void renderScene(gps::Shader shader, bool depthPass) {
     shader.useShaderProgram();
     renderGround(shader, depthPass);
-    renderTeapot(shader, depthPass);
+    //renderTeapot(shader, depthPass);
     renderBison(shader, depthPass);
-    renderTeapot2(shader, depthPass);
+    //renderTeapot2(shader, depthPass);
+    renderTree(shader, depthPass);
 
 }
 
