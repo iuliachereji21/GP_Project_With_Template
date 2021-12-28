@@ -14,6 +14,8 @@ uniform mat3 normalMatrix;
 //lighting
 uniform vec3 lightDir;
 uniform vec3 lightColor;
+uniform vec3 cameraTarget;
+uniform vec3 cameraPosition;
 uniform float timeOfDay;
 // textures
 uniform sampler2D diffuseTexture;
@@ -49,7 +51,69 @@ void computeDirLight()
     //compute specular light
     vec3 reflectDir = reflect(-lightDirN, normalEye);
     float specCoeff = pow(max(dot(viewDir, reflectDir), 0.0f), shininess);
-    specular = specularStrength * specCoeff * lightColor;
+    specular = specularStrength * specCoeff * lightColor * timeOfDay;
+}
+
+void computeDirFlashlight2()
+{
+    //compute eye space coordinates
+    vec4 fPosEye = view * model * vec4(fPosition, 1.0f);
+    vec3 normalEye = normalize(normalMatrix * fNormal);
+
+    //normalize light direction
+    //vec3 lightDirN = vec3(normalize(view * vec4(lightDir, 0.0f)));
+
+    //compute view direction
+    //vec3 viewDir = normalize(cameraTarget - fPosEye.xyz);
+vec3 viewDir = cameraTarget - cameraPosition;
+    //float angle = dot(viewDir, normalEye);
+    //vec3 lightAngle = fPosition - fPosEye.xyz;
+vec3 distance = fPosition - cameraPosition;
+
+    float angle = dot(-viewDir, normalize(distance));
+    if(angle>=0.9999999f && length(distance) < 10){
+	vec3 yellowColor = vec3(1.0f, 1.0f, 0.0f);
+
+        //compute ambient light
+        ambient = ambientStrength * yellowColor;
+
+        //compute diffuse light
+        diffuse = max(dot(normalEye, distance), 0.0f) * yellowColor;
+
+        //compute specular light
+        vec3 reflectDir = reflect(viewDir, normalEye);
+        float specCoeff = pow(max(dot(distance, reflectDir), 0.0f), 10.0f);
+        //specular = specularStrength * specCoeff * yellowColor;
+    } 
+}
+void computeDirFlashlight()
+{
+    //compute eye space coordinates
+    vec4 fPosEye = view * model * vec4(fPosition, 1.0f);
+    vec3 normalEye = normalize(normalMatrix * fNormal);
+    vec3 yellowColor = vec3(1.0f, 1.0f, 0.0f);
+
+    //normalize light direction
+    vec3 lightDirN = vec3(normalize(view * vec4(-(cameraTarget-cameraPosition), 0.0f)));
+    float distance = length(fPosEye.xyz-cameraPosition);
+    float angle = dot(fPosEye.xyz-cameraPosition, cameraTarget-cameraPosition) / (length(cameraTarget-cameraPosition) * distance);
+
+    //compute view direction 
+    vec3 viewDir = normalize(- fPosEye.xyz);
+
+    if(distance<=15.0f && angle >=0.99f) {
+         //compute ambient light
+    ambient = ambientStrength * yellowColor;
+
+    //compute diffuse light
+    diffuse = max(dot(normalEye, lightDirN), 0.0f) * yellowColor;
+
+    //compute specular light
+    vec3 reflectDir = reflect(-lightDirN, normalEye);
+    float specCoeff = pow(max(dot(viewDir, reflectDir), 0.0f), shininess);
+    specular = specularStrength * specCoeff * yellowColor;
+    }		
+    
 }
 
 float computeShadow()
@@ -80,6 +144,8 @@ float computeShadow()
 void main() 
 {
     computeDirLight();
+if(timeOfDay<=0.3f)
+	computeDirFlashlight();
     ambient *= texture(diffuseTexture, fTexCoords).rgb;
     diffuse *= texture(diffuseTexture, fTexCoords).rgb;
     specular *= texture(specularTexture, fTexCoords).rgb;
