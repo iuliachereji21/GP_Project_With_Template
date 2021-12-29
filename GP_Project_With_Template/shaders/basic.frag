@@ -174,7 +174,7 @@ void computeDirFlashlightNewNew()
     //compute view direction 
     vec3 viewDir = normalize(- fPosEye.xyz);
 
-    vec4 camFrontDirectionEye =  view *  vec4(cameraFrontDirection, 1.0f);
+    vec4 camFrontDirectionEye =  view *  vec4(cameraFrontDirection, 0.0f);
 
 
     float theta = dot(lightDirN, normalize(-camFrontDirectionEye.xyz));

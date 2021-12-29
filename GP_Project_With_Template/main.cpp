@@ -129,6 +129,8 @@ void keyboardCallback(GLFWwindow* window, int key, int scancode, int action, int
 
 void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
     //TODO
+    //std::cout << xpos << " " << ypos << "\n";
+
 }
 
 void processMovement() {
@@ -164,6 +166,10 @@ void processMovement() {
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         // compute normal matrix for teapot
         normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
+        std::cout << "pos: " << myCamera.getCameraPosition().x << " " << myCamera.getCameraPosition().y << " " << myCamera.getCameraPosition().z << "\n";
+        std::cout << "target: " << myCamera.getCameraTarget().x << " " << myCamera.getCameraTarget().y << " " << myCamera.getCameraTarget().z << "\n";
+        std::cout << "front: " << myCamera.getCameraFrontDirection().x << " " << myCamera.getCameraFrontDirection().y << " " << myCamera.getCameraFrontDirection().z << "\n";
+
 	}
 
 	if (pressedKeys[GLFW_KEY_D]) {
@@ -174,6 +180,9 @@ void processMovement() {
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         // compute normal matrix for teapot
         normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
+        std::cout << myCamera.getCameraFrontDirection().x << " " << myCamera.getCameraFrontDirection().y << " " << myCamera.getCameraFrontDirection().z << "\n";
+
+
 	}
 
     if (pressedKeys[GLFW_KEY_Q]) {
@@ -499,7 +508,7 @@ glm::mat4 lightSpaceMatrix()
 }
 void renderScene(gps::Shader shader, bool depthPass) {
     shader.useShaderProgram();
-    //renderGround(shader, depthPass);
+    renderGround(shader, depthPass);
     //renderTeapot(shader, depthPass);
     renderBison(shader, depthPass);
     //renderTeapot2(shader, depthPass);
