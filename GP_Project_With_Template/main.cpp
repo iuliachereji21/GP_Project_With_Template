@@ -43,12 +43,13 @@ GLint lightColorLoc;
 int worldSizeX = 2, worldSizeZ = 2;
 GLuint shadowMapFBO, depthMapTexture;
 const unsigned int SHADOW_WIDTH=1024, SHADOW_HEIGHT = 1024;
-GLfloat timeOfDay = 0.001f;
+GLfloat timeOfDay = 1.0f;
 float timeSpeed = 0.0001;
-bool increaseLight = true;
+bool increaseLight = false;
 bool stayLightOrDark = true;
 float timeLightOrDark = 200 * timeSpeed;
 GLint timeOfDayLoc;
+bool flashlightOn = 0;
 
 // camera
 gps::Camera myCamera(
@@ -70,6 +71,7 @@ gps::Model3D bison;
 gps::Model3D lightCube;
 gps::Model3D tree;
 gps::Model3D lamp;
+gps::Model3D fence;
 GLfloat angle;
 
 // shaders
@@ -140,7 +142,7 @@ void processMovement() {
         std::cout << myCamera.getCameraPosition().x << " " << myCamera.getCameraPosition().y << " " << myCamera.getCameraPosition().z << "\n";
         
     }
-	if (pressedKeys[GLFW_KEY_W]) {
+	if (pressedKeys[GLFW_KEY_UP]) {
 		myCamera.move(gps::MOVE_FORWARD, cameraSpeed);
 		//update view matrix
         view = myCamera.getViewMatrix();
@@ -150,7 +152,7 @@ void processMovement() {
         normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
 	}
 
-	if (pressedKeys[GLFW_KEY_S]) {
+	if (pressedKeys[GLFW_KEY_DOWN]) {
 		myCamera.move(gps::MOVE_BACKWARD, cameraSpeed);
         //update view matrix
         view = myCamera.getViewMatrix();
@@ -160,7 +162,7 @@ void processMovement() {
         normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
 	}
 
-	if (pressedKeys[GLFW_KEY_A]) {
+	if (pressedKeys[GLFW_KEY_LEFT]) {
 		myCamera.move(gps::MOVE_LEFT, cameraSpeed);
         //update view matrix
         view = myCamera.getViewMatrix();
@@ -174,7 +176,7 @@ void processMovement() {
 
 	}
 
-	if (pressedKeys[GLFW_KEY_D]) {
+	if (pressedKeys[GLFW_KEY_RIGHT]) {
 		myCamera.move(gps::MOVE_RIGHT, cameraSpeed);
         //update view matrix
         view = myCamera.getViewMatrix();
@@ -183,9 +185,18 @@ void processMovement() {
         // compute normal matrix for teapot
         normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
         std::cout << myCamera.getCameraFrontDirection().x << " " << myCamera.getCameraFrontDirection().y << " " << myCamera.getCameraFrontDirection().z << "\n";
-
-
 	}
+
+    if (pressedKeys[GLFW_KEY_EQUAL]) {
+        timeSpeed += 0.001;
+    }
+    if (pressedKeys[GLFW_KEY_MINUS]) {
+        timeSpeed -= 0.001;
+    }
+
+    if (pressedKeys[GLFW_KEY_F]) {
+        flashlightOn = not flashlightOn;
+    }
 
     if (pressedKeys[GLFW_KEY_Q]) {
         angle -= 1.0f;
@@ -282,6 +293,7 @@ void initModels() {
     tree.LoadModel("models/tree/trees9.obj");
     lightCube.LoadModel("models/cube/cube.obj");
     lamp.LoadModel("models/lamp/streetlamp.obj");
+    fence.LoadModel("models/fence/Fence.obj");
 }
 
 void initShaders() {
@@ -328,6 +340,8 @@ void initUniforms() {
 
     lampPos = glm::vec3(-8.0f, 2.0f, 1.0f);
     glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "lampPos"), 1, glm::value_ptr(lampPos));
+
+    glUniform1i(glGetUniformLocation(myBasicShader.shaderProgram, "flashlightOn"), flashlightOn);
 
 	//set light color
 	lightColor = glm::vec3(1.0f, 1.0f, 1.0f); //white light
@@ -482,6 +496,21 @@ void renderBison(gps::Shader shader, bool depthPass) {
     bison.Draw(shader);
 }
 
+void renderFence(gps::Shader shader, bool depthPass) {
+    glm::mat4 modelFence(1.0f);
+    //modelFence = glm::scale(modelFence, glm::vec3(0.2f, 0.2f, 0.2f));
+    //modelFence = glm::translate(modelFence, glm::vec3(-33.0f, -10.0f, 1.0f));
+    glm::mat3 normalMatrixFence(1.0f);
+
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelFence));
+    if (!depthPass) {
+        normalMatrixFence = glm::mat3(glm::inverseTranspose(view * modelFence));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixFence));
+    }
+
+    fence.Draw(shader);
+}
+
 void renderGround(gps::Shader shader, bool depthPass) {
     glm::mat4 modelGround(1.0f);
     glm::mat4 viewGround;
@@ -577,6 +606,7 @@ void renderScene(gps::Shader shader, bool depthPass) {
     //renderTeapot2(shader, depthPass);
     renderTree(shader, depthPass);
     renderLamp(shader, depthPass);
+    //renderFence(shader, depthPass);
 
 }
 
@@ -603,6 +633,7 @@ void renderWithBasicShader() {
     glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraPosition"), 1, glm::value_ptr(myCamera.getCameraPosition()));
     glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraFrontDirection"), 1, glm::value_ptr(myCamera.getCameraFrontDirection()));
 
+    glUniform1i(glGetUniformLocation(myBasicShader.shaderProgram, "flashlightOn"), flashlightOn);
     view = myCamera.getViewMatrix();
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniform3fv(lightDirLoc, 1, glm::value_ptr(lightDir));
@@ -680,13 +711,20 @@ void initialize_shadow_things() {
 
 void initSkyBox()
 {
-    faces.push_back("textures/skybox/right.tga");
+    /*faces.push_back("textures/skybox/right.tga");
     faces.push_back("textures/skybox/left.tga");
     faces.push_back("textures/skybox/top.tga");
     faces.push_back("textures/skybox/bottom.tga");
     faces.push_back("textures/skybox/back.tga");
     faces.push_back("textures/skybox/front.tga");
-    
+    */
+    faces.push_back("textures/skybox3/posx.jpg");
+    faces.push_back("textures/skybox3/negx.jpg");
+    faces.push_back("textures/skybox3/posy.jpg");
+    faces.push_back("textures/skybox3/negy.jpg");
+    faces.push_back("textures/skybox3/posz.jpg");
+    faces.push_back("textures/skybox3/negz.jpg");
+
     mySkyBox.Load(faces);
     skyboxShader.loadShader("shaders/skyboxShader.vert", "shaders/skyboxShader.frag");
     skyboxShader.useShaderProgram();
