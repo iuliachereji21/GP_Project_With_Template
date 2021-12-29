@@ -42,9 +42,9 @@ GLint lightColorLoc;
 int worldSizeX = 50, worldSizeZ = 50;
 GLuint shadowMapFBO, depthMapTexture;
 const unsigned int SHADOW_WIDTH=1024, SHADOW_HEIGHT = 1024;
-GLfloat timeOfDay = 1.0f;
-float timeSpeed = 0.001;
-bool increaseLight = false;
+GLfloat timeOfDay = 0.001f;
+float timeSpeed = 0.0001;
+bool increaseLight = true;
 bool stayLightOrDark = true;
 float timeLightOrDark = 200 * timeSpeed;
 GLint timeOfDayLoc;
@@ -320,8 +320,10 @@ void initUniforms() {
 	// send light color to shader
 	glUniform3fv(lightColorLoc, 1, glm::value_ptr(lightColor));
 
-    glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraTarget"), 1, glm::value_ptr(myCamera.getCameraTarget()));
+    glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraTarget"), 1, glm::value_ptr(myCamera.getCameraFrontDirection()));
     glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraPosition"), 1, glm::value_ptr(myCamera.getCameraPosition()));
+
+    glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraFrontDirection"), 1, glm::value_ptr(myCamera.getCameraFrontDirection()));
 
     lightShader.useShaderProgram();
 	glUniformMatrix4fv(glGetUniformLocation(lightShader.shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
@@ -497,7 +499,7 @@ glm::mat4 lightSpaceMatrix()
 }
 void renderScene(gps::Shader shader, bool depthPass) {
     shader.useShaderProgram();
-    renderGround(shader, depthPass);
+    //renderGround(shader, depthPass);
     //renderTeapot(shader, depthPass);
     renderBison(shader, depthPass);
     //renderTeapot2(shader, depthPass);
@@ -524,8 +526,9 @@ void renderWithBasicShader() {
     timeOfDayLoc = glGetUniformLocation(myBasicShader.shaderProgram, "timeOfDay");
     glUniform1f(timeOfDayLoc, timeOfDay);
 
-    glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraTarget"), 1, glm::value_ptr(myCamera.getCameraTarget()));
+    glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraTarget"), 1, glm::value_ptr(myCamera.getCameraFrontDirection()));
     glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraPosition"), 1, glm::value_ptr(myCamera.getCameraPosition()));
+    glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraFrontDirection"), 1, glm::value_ptr(myCamera.getCameraFrontDirection()));
 
     view = myCamera.getViewMatrix();
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));

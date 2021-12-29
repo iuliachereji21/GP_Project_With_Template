@@ -21,6 +21,10 @@ namespace gps {
         return this->cameraTarget;
     }
 
+    glm::vec3 Camera::getCameraFrontDirection() {
+        return this->cameraFrontDirection;
+    }
+
     //return the view matrix, using the glm::lookAt() function
     glm::mat4 Camera::getViewMatrix() {
         return glm::lookAt(cameraPosition, cameraTarget, cameraUpDirection);

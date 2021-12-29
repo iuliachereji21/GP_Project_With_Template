@@ -6,3 +6,4 @@ https://learnopengl.com/Advanced-OpenGL/Depth-testing
 https://learnopengl.com/Advanced-OpenGL/Face-culling
 https://stackoverflow.com/questions/21830340/understanding-glmlookat
 https://www.youtube.com/watch?v=Ut6poChkSjA
+https://www.youtube.com/watch?v=tmCOMzAA4rc
