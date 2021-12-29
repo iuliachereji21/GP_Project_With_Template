@@ -17,6 +17,7 @@ uniform vec3 lightColor;
 uniform vec3 cameraTarget;
 uniform vec3 cameraPosition;
 uniform vec3 cameraFrontDirection;
+uniform vec3 lampPos;
 
 uniform float timeOfDay;
 // textures
@@ -119,41 +120,43 @@ void computeDirFlashlight()
 }
 
 float constant = 1.0f;
-float linear = 0.0045f;
-float quadratic = 0.0075f;
+float linear = 0.22f;
+float quadratic = 0.20f;
 
-void computeDirFlashlightNew()
+void computeDirLamp()
 {
     //compute eye space coordinates
     vec4 fPosEye = view * model * vec4(fPosition, 1.0f);
+    vec4 lampPosEye = view * vec4(lampPos, 1.0f);
     vec3 normalEye = normalize(normalMatrix * fNormal);
     vec3 yellowColor = vec3(1.0f, 1.0f, 0.0f);
 
     //normalize light direction
-    vec3 lightDirN = vec3(normalize(- fPosEye.xyz));
+    vec3 lightDirN = vec3(normalize(lampPosEye.xyz - fPosEye.xyz));
 
     //compute distance to light
-    float dist = length(- fPosEye.xyz);
+    float dist = length(lampPosEye.xyz - fPosEye.xyz);
     //compute attenuation
     float att = 1.0f / (constant + linear * dist + quadratic * (dist * dist));
 
-    vec4 camTargetEye =  view * model * vec4(cameraTarget, 1.0f);
 
-    float angle = dot(fPosEye.xyz, camTargetEye.xyz) / (length(camTargetEye.xyz) * dist);
 
     //compute view direction 
     vec3 viewDir = normalize(- fPosEye.xyz);
 
-    if(dist < 11.0f && angle >= 0.0f){
+    //if(dist < 11.0f){
         //compute ambient light
-        ambient = att * ambientStrength * yellowColor;
+        vec3 ambient2 = att * ambientStrength * yellowColor;
+        ambient+=ambient2;
         //compute diffuse light
-        diffuse = att * max(dot(normalEye, lightDirN), 0.0f) * yellowColor;
+        vec3 diffuse2 = att * max(dot(normalEye, lightDirN), 0.0f) * yellowColor;
+        diffuse = max(diffuse, diffuse2);
 
         vec3 reflectDir = reflect(-lightDirN, normalEye);
         float specCoeff = pow(max(dot(viewDir, reflectDir), 0.0f), shininess);
-        specular = att * specularStrength * specCoeff * yellowColor;
-    }
+        vec3 specular2 = att * specularStrength * specCoeff * yellowColor;
+        specular = max(specular, specular2);
+    //}
 
 		
     
@@ -175,21 +178,22 @@ void computeDirFlashlightNewNew()
     vec3 viewDir = normalize(- fPosEye.xyz);
 
     vec4 camFrontDirectionEye =  view *  vec4(cameraFrontDirection, 0.0f);
-
+    float dist = length(- fPosEye.xyz);
+    float strength = 3/dist;
 
     float theta = dot(lightDirN, normalize(-camFrontDirectionEye.xyz));
     float epsilon = (cutOff - outerCutOff);
     float intensity = clamp((theta - outerCutOff) / epsilon, 0.0, 1.0);
 
-    ambient = ambientStrength * yellowColor* intensity;
+    ambient = ambientStrength * yellowColor* intensity * strength;
 
     //compute diffuse light
-    diffuse = max(dot(normalEye, lightDirN), 0.0f) * yellowColor * intensity;
+    diffuse = max(dot(normalEye, lightDirN), 0.0f) * yellowColor * intensity * strength;
 
     //compute specular light
     vec3 reflectDir = reflect(-lightDirN, normalEye);
     float specCoeff = pow(max(dot(viewDir, reflectDir), 0.0f), shininess);
-    specular = specularStrength * specCoeff * yellowColor * intensity;
+    specular = specularStrength * specCoeff * yellowColor * intensity * strength;
 
 
 
@@ -231,8 +235,10 @@ void main()
 {
     computeDirLight();
     if(timeOfDay<=0.3f)
-	//computeDirFlashlightNew();
+	{
         computeDirFlashlightNewNew();
+        computeDirLamp();
+    }
 
     ambient *= texture(diffuseTexture, fTexCoords).rgb;
     diffuse *= texture(diffuseTexture, fTexCoords).rgb;

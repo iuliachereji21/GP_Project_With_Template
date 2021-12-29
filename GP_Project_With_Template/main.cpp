@@ -30,6 +30,7 @@ glm::mat3 normalMatrix;
 // light parameters
 glm::vec3 lightDir;
 glm::vec3 lightColor;
+glm::vec3 lampPos;
 const GLfloat near_plane = 0.1f, far_plane = 7.5f;
 
 // shader uniform locations
@@ -39,7 +40,7 @@ GLint projectionLoc;
 GLint normalMatrixLoc;
 GLint lightDirLoc;
 GLint lightColorLoc;
-int worldSizeX = 50, worldSizeZ = 50;
+int worldSizeX = 2, worldSizeZ = 2;
 GLuint shadowMapFBO, depthMapTexture;
 const unsigned int SHADOW_WIDTH=1024, SHADOW_HEIGHT = 1024;
 GLfloat timeOfDay = 0.001f;
@@ -68,6 +69,7 @@ gps::Model3D ground;
 gps::Model3D bison;
 gps::Model3D lightCube;
 gps::Model3D tree;
+gps::Model3D lamp;
 GLfloat angle;
 
 // shaders
@@ -279,6 +281,7 @@ void initModels() {
     bison.LoadModel("models/bison/Bison.obj");
     tree.LoadModel("models/tree/trees9.obj");
     lightCube.LoadModel("models/cube/cube.obj");
+    lamp.LoadModel("models/lamp/streetlamp.obj");
 }
 
 void initShaders() {
@@ -323,6 +326,9 @@ void initUniforms() {
 	glUniform3fv(lightDirLoc, 1, glm::value_ptr(lightDir));
 
 
+    lampPos = glm::vec3(-8.0f, 2.0f, 1.0f);
+    glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "lampPos"), 1, glm::value_ptr(lampPos));
+
 	//set light color
 	lightColor = glm::vec3(1.0f, 1.0f, 1.0f); //white light
 	lightColorLoc = glGetUniformLocation(myBasicShader.shaderProgram, "lightColor");
@@ -364,12 +370,27 @@ void renderTeapot(gps::Shader shader, bool depthPass) {
     teapot.Draw(shader);
 }
 
+void renderLamp(gps::Shader shader, bool depthPass) {
+    glm::mat4 modelLamp(1.0f);
+    modelLamp = glm::scale(modelLamp, glm::vec3(0.2f, 0.2f, 0.2f));
+    modelLamp = glm::translate(modelLamp, glm::vec3(-33.0f, -10.0f, 1.0f));
+    glm::mat3 normalMatrixLamp(1.0f);
+
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelLamp));
+    if (!depthPass) {
+        normalMatrixLamp = glm::mat3(glm::inverseTranspose(view * modelLamp));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixLamp));
+    }
+    
+    lamp.Draw(shader);
+}
+
 void renderTree(gps::Shader shader, bool depthPass) {
     // select active shader program
     //shader.useShaderProgram();
     glm::mat4 modelTree(1.0f);
     modelTree = glm::scale(modelTree, glm::vec3(0.1f, 0.1f, 0.1f));
-    modelTree = glm::translate(modelTree, glm::vec3(0.0f, -20.0f, 0.0f));
+    modelTree = glm::translate(modelTree, glm::vec3(0.0f, -20.0f, -10.0f));
     glm::mat3 normalMatrixTree(1.0f);
 
     //send teapot model matrix data to shader
@@ -428,6 +449,7 @@ void renderBison(gps::Shader shader, bool depthPass) {
     modelBison = glm::rotate(90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
     modelBison *= glm::scale(glm::vec3(2.0f, 2.0f, 2.0f));
     modelBison *= glm::translate(glm::vec3(0.0f, -0.7f, 0.0f));
+
     //send teapot model matrix data to shader
     /*if (shader.shaderProgram == myBasicShader.shaderProgram) {
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelBison));
@@ -470,12 +492,53 @@ void renderGround(gps::Shader shader, bool depthPass) {
     //modelGround = glm::rotate(88.0f, glm::vec3(1.0f, 0.0f, 0.0f));
     //modelGround *= glm::scale(glm::vec3(1.0f, 0.3f, 0.3f));
     //modelGround *= glm::translate(glm::vec3(0.0f, -4.0f, 0.0f));
-    float TranslatePlace = -20.0f;
     //if (shader.shaderProgram == myBasicShader.shaderProgram)
        // glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
 
     //glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
-    for (int i = 0; i < worldSizeX; i++) {
+    
+    modelGround = glm::mat4(1.0f);
+    modelGround *= glm::translate(glm::vec3(0.0f, -2.0f, 0.0f));
+    modelGround = glm::translate(modelGround, glm::vec3(10.0f,0,10.0f));
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelGround));
+
+    if (!depthPass) {
+        normalMatrixGround = glm::mat3(glm::inverseTranspose(view * modelGround));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
+    }
+    ground.Draw(shader);
+    modelGround = glm::mat4(1.0f);
+    modelGround *= glm::translate(glm::vec3(0.0f, -2.0f, 0.0f));
+    modelGround = glm::translate(modelGround, glm::vec3(10.0f, 0, -10.0f));
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelGround));
+
+    if (!depthPass) {
+        normalMatrixGround = glm::mat3(glm::inverseTranspose(view * modelGround));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
+    }
+    ground.Draw(shader);
+    modelGround = glm::mat4(1.0f);
+    modelGround *= glm::translate(glm::vec3(0.0f, -2.0f, 0.0f));
+    modelGround = glm::translate(modelGround, glm::vec3(-10.0f, 0, 10.0f));
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelGround));
+
+    if (!depthPass) {
+        normalMatrixGround = glm::mat3(glm::inverseTranspose(view * modelGround));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
+    }
+    ground.Draw(shader);
+    modelGround = glm::mat4(1.0f);
+    modelGround *= glm::translate(glm::vec3(0.0f, -2.0f, 0.0f));
+    modelGround = glm::translate(modelGround, glm::vec3(-10.0f, 0, -10.0f));
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelGround));
+
+    if (!depthPass) {
+        normalMatrixGround = glm::mat3(glm::inverseTranspose(view * modelGround));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
+    }
+    ground.Draw(shader);
+    
+    /*for (int i = 0; i < worldSizeX; i++) {
         for (int j = 0; j < worldSizeZ; j++) {
             modelGround = glm::mat4(1.0f);
             modelGround *= glm::translate(glm::vec3(0.0f, -2.0f, 0.0f));
@@ -490,7 +553,7 @@ void renderGround(gps::Shader shader, bool depthPass) {
             }
             ground.Draw(shader);
         }
-    }
+    }*/
 }
 
 glm::mat4 lightSpaceMatrix()
@@ -513,6 +576,7 @@ void renderScene(gps::Shader shader, bool depthPass) {
     renderBison(shader, depthPass);
     //renderTeapot2(shader, depthPass);
     renderTree(shader, depthPass);
+    renderLamp(shader, depthPass);
 
 }
 
