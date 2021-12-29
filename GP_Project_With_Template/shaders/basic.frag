@@ -19,6 +19,7 @@ uniform vec3 cameraPosition;
 uniform vec3 cameraFrontDirection;
 uniform vec3 lampPos;
 uniform bool flashlightOn;
+uniform bool fogOn;
 
 uniform float timeOfDay;
 // textures
@@ -145,7 +146,7 @@ void computeDirLamp()
     //compute view direction 
     vec3 viewDir = normalize(- fPosEye.xyz);
 
-    if(dist < 11.0f){
+    //if(dist < 11.0f){
         //compute ambient light
         vec3 ambient2 = att * ambientStrength * yellowColor;
         ambient+=ambient2;
@@ -157,7 +158,7 @@ void computeDirLamp()
         float specCoeff = pow(max(dot(viewDir, reflectDir), 0.0f), shininess);
         vec3 specular2 = att * specularStrength * specCoeff * yellowColor;
         specular = max(specular, specular2);
-    }
+    //}
 
 		
     
@@ -232,6 +233,17 @@ float computeShadowSun()
 	return shadow;
 }
 
+float computeFog()
+{
+    float fogDensity = 0.05f;
+    vec4 fPosEye = view * model * vec4(fPosition, 1.0f);
+    float fragmentDistance = length(fPosEye.xyz);
+    float fogFactor = exp(-pow(fragmentDistance * fogDensity, 2));
+    
+    return clamp(fogFactor, 0.0f, 1.0f);
+}
+
+
 void main() 
 {
     computeDirLight();
@@ -249,5 +261,12 @@ void main()
     shadowSun*=timeOfDay;
     //compute final vertex color
     vec3 color = min((ambient + (1.0f - shadowSun) * diffuse) + (1.0f - shadowSun) * specular, 1.0f);
-    fColor = vec4(color, 1.0f);
+
+    if(fogOn){
+        float fogFactor = computeFog();
+        vec4 fogColor = vec4(0.5f, 0.5f, 0.5f, 1.0f);
+        fColor = mix(fogColor* timeOfDay, vec4(color, 1.0f), fogFactor);
+    }
+    else 
+        fColor = vec4(color, 1.0f);
 }

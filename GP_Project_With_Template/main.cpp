@@ -50,6 +50,7 @@ bool stayLightOrDark = true;
 float timeLightOrDark = 200 * timeSpeed;
 GLint timeOfDayLoc;
 bool flashlightOn = 0;
+bool fogOn = 0;
 
 // camera
 gps::Camera myCamera(
@@ -194,8 +195,11 @@ void processMovement() {
         timeSpeed -= 0.001;
     }
 
-    if (pressedKeys[GLFW_KEY_F]) {
+    if (pressedKeys[GLFW_KEY_L]) {
         flashlightOn = not flashlightOn;
+    }
+    if (pressedKeys[GLFW_KEY_F]) {
+        fogOn = not fogOn;
     }
 
     if (pressedKeys[GLFW_KEY_Q]) {
@@ -634,6 +638,8 @@ void renderWithBasicShader() {
     glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraFrontDirection"), 1, glm::value_ptr(myCamera.getCameraFrontDirection()));
 
     glUniform1i(glGetUniformLocation(myBasicShader.shaderProgram, "flashlightOn"), flashlightOn);
+    glUniform1i(glGetUniformLocation(myBasicShader.shaderProgram, "fogOn"), fogOn);
+
     view = myCamera.getViewMatrix();
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniform3fv(lightDirLoc, 1, glm::value_ptr(lightDir));
@@ -673,6 +679,7 @@ void renderScene() {
 
     skyboxShader.useShaderProgram();
     timeOfDayLoc = glGetUniformLocation(skyboxShader.shaderProgram, "timeOfDay");
+    glUniform1i(glGetUniformLocation(skyboxShader.shaderProgram, "fogOn"), fogOn);
     glUniform1f(timeOfDayLoc, timeOfDay);
 
     mySkyBox.Draw(skyboxShader, view, projection);
