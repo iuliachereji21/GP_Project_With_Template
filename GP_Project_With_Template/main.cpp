@@ -75,7 +75,7 @@ gps::Model3D bison;
 gps::Model3D lightCube;
 gps::Model3D tree;
 gps::Model3D lamp;
-gps::Model3D fence;
+gps::Model3D wall;
 GLfloat angle;
 
 // shaders
@@ -184,13 +184,15 @@ void CheckForColisionAndMove(gps::MOVE_DIRECTION direction, float speed) {
 }
 
 void processCommand() {
+    if (pressedKeys[GLFW_KEY_A]) {
+        animationOn = not animationOn;
+    }
     if (pressedKeys[GLFW_KEY_EQUAL]) {
         timeSpeed += 0.001;
     }
     if (pressedKeys[GLFW_KEY_MINUS]) {
         timeSpeed -= 0.001;
     }
-
     if (pressedKeys[GLFW_KEY_L]) {
         flashlightOn = not flashlightOn;
     }
@@ -315,7 +317,7 @@ void initModels() {
     tree.LoadModel("models/tree/trees9.obj");
     lightCube.LoadModel("models/cube/cube.obj");
     lamp.LoadModel("models/lamp/streetlamp.obj");
-    fence.LoadModel("models/fence/Fence.obj");
+    wall.LoadModel("models/wall/Brick_wall.obj");
 }
 
 void initShaders() {
@@ -518,19 +520,19 @@ void renderBison(gps::Shader shader, bool depthPass) {
     bison.Draw(shader);
 }
 
-void renderFence(gps::Shader shader, bool depthPass) {
-    glm::mat4 modelFence(1.0f);
-    //modelFence = glm::scale(modelFence, glm::vec3(0.2f, 0.2f, 0.2f));
-    //modelFence = glm::translate(modelFence, glm::vec3(-33.0f, -10.0f, 1.0f));
-    glm::mat3 normalMatrixFence(1.0f);
+void renderWall(gps::Shader shader, bool depthPass) {
+    glm::mat4 modelWall(1.0f);
+    //modelWall = glm::scale(modelWall, glm::vec3(0.2f, 0.2f, 0.2f));
+    //modelWall = glm::translate(modelWall, glm::vec3(-33.0f, -10.0f, 1.0f));
+    glm::mat3 normalMatrixWall(1.0f);
 
-    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelFence));
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelWall));
     if (!depthPass) {
-        normalMatrixFence = glm::mat3(glm::inverseTranspose(view * modelFence));
-        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixFence));
+        normalMatrixWall = glm::mat3(glm::inverseTranspose(view * modelWall));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixWall));
     }
 
-    fence.Draw(shader);
+    wall.Draw(shader);
 }
 
 void renderGround(gps::Shader shader, bool depthPass) {
@@ -605,6 +607,7 @@ void renderGround(gps::Shader shader, bool depthPass) {
             ground.Draw(shader);
         }
     }*/
+    
 }
 
 glm::mat4 lightSpaceMatrix()
@@ -622,14 +625,15 @@ glm::mat4 lightSpaceMatrix()
 }
 void renderScene(gps::Shader shader, bool depthPass) {
     shader.useShaderProgram();
+
+    //renderWall(shader, depthPass);
+
     renderGround(shader, depthPass);
     //renderTeapot(shader, depthPass);
     renderBison(shader, depthPass);
     //renderTeapot2(shader, depthPass);
     renderTree(shader, depthPass);
     renderLamp(shader, depthPass);
-    //renderFence(shader, depthPass);
-
 }
 
 void computeDepthMapAndRender() {
@@ -823,10 +827,7 @@ int main(int argc, const char * argv[]) {
 	while (!glfwWindowShouldClose(myWindow.getWindow())) {
         processTimePassing();
         processCommand();
-        if (pressedKeys[GLFW_KEY_A]) {
-            animationOn = not animationOn;
-            //lastTimeStamp = glfwGetTime();
-        }
+        
         if (animationOn) {
             if (rotate) 
                 rotateAtCollision();

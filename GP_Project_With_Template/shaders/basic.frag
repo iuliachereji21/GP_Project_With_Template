@@ -265,7 +265,7 @@ void main()
     if(fogOn){
         float fogFactor = computeFog();
         vec4 fogColor = vec4(0.5f, 0.5f, 0.5f, 1.0f);
-        fColor = mix(fogColor* timeOfDay, vec4(color, 1.0f), fogFactor);
+        fColor = mix(fogColor*timeOfDay, vec4(color, 1.0f), fogFactor);
     }
     else 
         fColor = vec4(color, 1.0f);
