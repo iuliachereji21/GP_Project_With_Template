@@ -51,6 +51,9 @@ float timeLightOrDark = 200 * timeSpeed;
 GLint timeOfDayLoc;
 bool flashlightOn = 0;
 bool fogOn = 0;
+bool animationOn = false;
+bool rotate = false;
+int totalTimesToRotate, currentRotationTimes;
 
 // camera
 gps::Camera myCamera(
@@ -138,56 +141,49 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 
 }
 
-void processMovement() {
-    if (pressedKeys[GLFW_KEY_P]) {
-        std::cout << myCamera.getCameraPosition().x << " " << myCamera.getCameraPosition().y << " " << myCamera.getCameraPosition().z << "\n";
-        
+void rotateAtCollision() {
+    if (currentRotationTimes >= totalTimesToRotate)
+        rotate = false;
+    else {
+        myCamera.rotate(0, cameraRotationAngle);
+        currentRotationTimes++;
     }
-	if (pressedKeys[GLFW_KEY_UP]) {
-		myCamera.move(gps::MOVE_FORWARD, cameraSpeed);
-		//update view matrix
-        view = myCamera.getViewMatrix();
-        myBasicShader.useShaderProgram();
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        // compute normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
-	}
+}
 
-	if (pressedKeys[GLFW_KEY_DOWN]) {
-		myCamera.move(gps::MOVE_BACKWARD, cameraSpeed);
-        //update view matrix
-        view = myCamera.getViewMatrix();
-        myBasicShader.useShaderProgram();
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        // compute normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
-	}
+void CheckForColisionAndMove(gps::MOVE_DIRECTION direction, float speed) {
+    //while (true) {
+        gps::Camera newCamera(
+            myCamera.getCameraPosition(),
+            myCamera.getCameraTarget(),
+            myCamera.getCameraUpDirection());
+        newCamera.move(direction, speed);
+        float newx = newCamera.getCameraPosition().x;
+        float newz = newCamera.getCameraPosition().z;
+        if (newx <= -20 || newx >= 20 || newz <= -20 || newz >= 20) //out
+        {
+            //int random = 25 + (std::rand() % (180 - 25 + 1));
+            //myCamera.rotate(0, cameraRotationAngle*random);
+            //myCamera.rotate(0, cameraRotationAngle);
+            if (animationOn) {
+                rotate = true;
+                totalTimesToRotate = 25 + (std::rand() % (180 - 25 + 1));
+                currentRotationTimes = 0;
+            }
+            else return;
 
-	if (pressedKeys[GLFW_KEY_LEFT]) {
-		myCamera.move(gps::MOVE_LEFT, cameraSpeed);
-        //update view matrix
-        view = myCamera.getViewMatrix();
-        myBasicShader.useShaderProgram();
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        // compute normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
-        std::cout << "pos: " << myCamera.getCameraPosition().x << " " << myCamera.getCameraPosition().y << " " << myCamera.getCameraPosition().z << "\n";
-        std::cout << "target: " << myCamera.getCameraTarget().x << " " << myCamera.getCameraTarget().y << " " << myCamera.getCameraTarget().z << "\n";
-        std::cout << "front: " << myCamera.getCameraFrontDirection().x << " " << myCamera.getCameraFrontDirection().y << " " << myCamera.getCameraFrontDirection().z << "\n";
+        }
+        else {
+            myCamera.move(direction, speed);
+            view = myCamera.getViewMatrix();
+            normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
+            std::cout << "pos: " << myCamera.getCameraPosition().x << " " << myCamera.getCameraPosition().y << " " << myCamera.getCameraPosition().z << "\n";
 
-	}
+            return;
+        }
+    //}
+}
 
-	if (pressedKeys[GLFW_KEY_RIGHT]) {
-		myCamera.move(gps::MOVE_RIGHT, cameraSpeed);
-        //update view matrix
-        view = myCamera.getViewMatrix();
-        myBasicShader.useShaderProgram();
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        // compute normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
-        std::cout << myCamera.getCameraFrontDirection().x << " " << myCamera.getCameraFrontDirection().y << " " << myCamera.getCameraFrontDirection().z << "\n";
-	}
-
+void processCommand() {
     if (pressedKeys[GLFW_KEY_EQUAL]) {
         timeSpeed += 0.001;
     }
@@ -200,6 +196,28 @@ void processMovement() {
     }
     if (pressedKeys[GLFW_KEY_F]) {
         fogOn = not fogOn;
+    }
+}
+
+void processMovement() {
+    if (pressedKeys[GLFW_KEY_P]) {
+        std::cout << myCamera.getCameraPosition().x << " " << myCamera.getCameraPosition().y << " " << myCamera.getCameraPosition().z << "\n";
+        
+    }
+	if (pressedKeys[GLFW_KEY_UP]) {
+        CheckForColisionAndMove(gps::MOVE_FORWARD, cameraSpeed);
+	}
+
+	if (pressedKeys[GLFW_KEY_DOWN]) {
+        CheckForColisionAndMove(gps::MOVE_BACKWARD, cameraSpeed);
+	}
+
+	if (pressedKeys[GLFW_KEY_LEFT]) {
+        CheckForColisionAndMove(gps::MOVE_LEFT, cameraSpeed);
+	}
+
+	if (pressedKeys[GLFW_KEY_RIGHT]) {
+        CheckForColisionAndMove(gps::MOVE_RIGHT, cameraSpeed);
     }
 
     if (pressedKeys[GLFW_KEY_Q]) {
@@ -776,6 +794,13 @@ void processTimePassing() {
 
 }
 
+/*float delta = 0;
+float movementSpeed = 2; // units per second
+void updateDelta(double elapsedSeconds) {
+    delta = delta + movementSpeed * elapsedSeconds;
+}
+double lastTimeStamp = glfwGetTime();*/
+
 int main(int argc, const char * argv[]) {
 
     try {
@@ -797,9 +822,22 @@ int main(int argc, const char * argv[]) {
 	// application loop
 	while (!glfwWindowShouldClose(myWindow.getWindow())) {
         processTimePassing();
-        processMovement();
-	    renderScene();
+        processCommand();
+        if (pressedKeys[GLFW_KEY_A]) {
+            animationOn = not animationOn;
+            //lastTimeStamp = glfwGetTime();
+        }
+        if (animationOn) {
+            if (rotate) 
+                rotateAtCollision();
+            else
+                CheckForColisionAndMove(gps::MOVE_FORWARD, cameraSpeed);
+        }
+        else 
+            processMovement();
+        
 
+	    renderScene();
 		glfwPollEvents();
 		glfwSwapBuffers(myWindow.getWindow());
 

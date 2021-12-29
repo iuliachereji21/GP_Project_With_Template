@@ -20,6 +20,7 @@ namespace gps {
         glm::vec3 getCameraPosition();
         glm::vec3 getCameraTarget();
         glm::vec3 getCameraFrontDirection();
+        glm::vec3 getCameraUpDirection();
         //update the camera internal parameters following a camera move event
         void move(MOVE_DIRECTION direction, float speed);
         //update the camera internal parameters following a camera rotate event
