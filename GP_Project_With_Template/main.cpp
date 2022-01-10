@@ -54,6 +54,8 @@ bool fogOn = 0;
 bool animationOn = false;
 bool rotate = false;
 int totalTimesToRotate, currentRotationTimes;
+bool wireframe = false;
+bool seeLightCube = false;
 
 // camera
 gps::Camera myCamera(
@@ -69,7 +71,6 @@ const int GL_WINDOW_HEIGHT = 900;
 
 GLboolean pressedKeys[1024];
 // models
-gps::Model3D teapot;
 gps::Model3D ground;
 gps::Model3D bison;
 gps::Model3D lightCube;
@@ -159,7 +160,7 @@ void CheckForColisionAndMove(gps::MOVE_DIRECTION direction, float speed) {
         newCamera.move(direction, speed);
         float newx = newCamera.getCameraPosition().x;
         float newz = newCamera.getCameraPosition().z;
-        if (newx <= -20 || newx >= 20 || newz <= -20 || newz >= 20) //out
+        if (newx <= -19 || newx >= 19 || newz <= -19 || newz >= 19) //out
         {
             //int random = 25 + (std::rand() % (180 - 25 + 1));
             //myCamera.rotate(0, cameraRotationAngle*random);
@@ -199,6 +200,19 @@ void processCommand() {
     if (pressedKeys[GLFW_KEY_F]) {
         fogOn = not fogOn;
     }
+    if (pressedKeys[GLFW_KEY_W]) {
+        if (!wireframe) {
+            wireframe = true;
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+        else {
+            wireframe = false;
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+    }
+    if (pressedKeys[GLFW_KEY_C]) {
+        seeLightCube = not seeLightCube;
+    }
 }
 
 void processMovement() {
@@ -221,36 +235,7 @@ void processMovement() {
 	if (pressedKeys[GLFW_KEY_RIGHT]) {
         CheckForColisionAndMove(gps::MOVE_RIGHT, cameraSpeed);
     }
-
-    if (pressedKeys[GLFW_KEY_Q]) {
-        angle -= 1.0f;
-        // update model matrix for teapot
-        model = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(0, 1, 0));
-        // update normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
-    }
-
-    if (pressedKeys[GLFW_KEY_E]) {
-        angle += 1.0f;
-        // update model matrix for teapot
-        model = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(0, 1, 0));
-        // update normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view*model));
-    }
-    if (pressedKeys[GLFW_KEY_R]) {
-        angle -= 1.0f;
-        // update model matrix for teapot
-        model = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1, 0, 0));
-        // update normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
-    }
-    if (pressedKeys[GLFW_KEY_T]) {
-        angle += 1.0f;
-        // update model matrix for teapot
-        model = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1, 0, 0));
-        // update normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
-    }
+    
     if (pressedKeys[GLFW_KEY_G]) {
         myCamera.rotate(0, cameraRotationAngle);
         //update view matrix
@@ -311,13 +296,12 @@ void initOpenGLState() {
 }
 
 void initModels() {
-    teapot.LoadModel("models/teapot/teapot20segUT.obj");
     ground.LoadModel("models/ground/ground.obj");
     bison.LoadModel("models/bison/Bison.obj");
     tree.LoadModel("models/tree/trees9.obj");
     lightCube.LoadModel("models/cube/cube.obj");
     lamp.LoadModel("models/lamp/streetlamp.obj");
-    wall.LoadModel("models/wall/Brick_wall.obj");
+    wall.LoadModel("models/farmhouse/Farmhouse.obj");
 }
 
 void initShaders() {
@@ -382,31 +366,6 @@ void initUniforms() {
 	glUniformMatrix4fv(glGetUniformLocation(lightShader.shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 }
 
-void renderTeapot(gps::Shader shader, bool depthPass) {
-    // select active shader program
-    //shader.useShaderProgram();
-    glm::mat4 modelTeapot(1.0f);
-    glm::mat3 normalMatrixTeapot(1.0f);
-
-    //send teapot model matrix data to shader
-    /*if (shader.shaderProgram == myBasicShader.shaderProgram) {
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
-    }*/
-    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelTeapot));
-    if (!depthPass) {
-        normalMatrixTeapot = glm::mat3(glm::inverseTranspose(view * modelTeapot));
-        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixTeapot));
-    }
-    //glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
-
-
-    //send teapot normal matrix data to shader
-    //glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
-
-    // draw teapot
-    teapot.Draw(shader);
-}
 
 void renderLamp(gps::Shader shader, bool depthPass) {
     glm::mat4 modelLamp(1.0f);
@@ -423,89 +382,108 @@ void renderLamp(gps::Shader shader, bool depthPass) {
     lamp.Draw(shader);
 }
 
+void renderWall(gps::Shader shader, bool depthPass) {
+    glm::mat4 modelWall(1.0f);
+    modelWall = glm::scale(modelWall, glm::vec3(0.3f, 0.3f, 0.3f));
+    modelWall = glm::translate(modelWall, glm::vec3(75.0f, -6.8f, 40.0f));
+    glm::mat3 normalMatrixWall(1.0f);
+
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelWall));
+    if (!depthPass) {
+        normalMatrixWall = glm::mat3(glm::inverseTranspose(view * modelWall));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixWall));
+    }
+
+    wall.Draw(shader);
+
+    for (int i = 0; i < 3; i++) {
+        modelWall = glm::translate(modelWall, glm::vec3(0.0f, 0.0f, -35.0f));
+        glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelWall));
+        if (!depthPass) {
+            normalMatrixWall = glm::mat3(glm::inverseTranspose(view * modelWall));
+            glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixWall));
+        }
+
+        wall.Draw(shader);
+    }
+
+    modelWall = glm::rotate(glm::mat4(1.0f),glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    modelWall = glm::scale(modelWall, glm::vec3(0.3f, 0.3f, 0.3f));
+    modelWall = glm::translate(modelWall, glm::vec3(75.0f, -6.8f, 46.0f));
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelWall));
+    if (!depthPass) {
+        normalMatrixWall = glm::mat3(glm::inverseTranspose(view * modelWall));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixWall));
+    }
+
+    wall.Draw(shader);
+
+    for (int i = 0; i < 3; i++) {
+        modelWall = glm::translate(modelWall, glm::vec3(0.0f, 0.0f, -35.0f));
+        glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelWall));
+        if (!depthPass) {
+            normalMatrixWall = glm::mat3(glm::inverseTranspose(view * modelWall));
+            glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixWall));
+        }
+
+        wall.Draw(shader);
+    }
+
+    modelWall = glm::scale(glm::mat4(1.0f), glm::vec3(0.3f, 0.3f, 0.3f));
+    modelWall = glm::translate(modelWall, glm::vec3(-75.0f, -6.8f, -65.0f));
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelWall));
+    if (!depthPass) {
+        normalMatrixWall = glm::mat3(glm::inverseTranspose(view * modelWall));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixWall));
+    }
+
+    wall.Draw(shader);
+
+    for (int i = 0; i < 3; i++) {
+        modelWall = glm::translate(modelWall, glm::vec3(0.0f, 0.0f, 35.0f));
+        glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelWall));
+        if (!depthPass) {
+            normalMatrixWall = glm::mat3(glm::inverseTranspose(view * modelWall));
+            glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixWall));
+        }
+
+        wall.Draw(shader);
+    }
+
+}
+
+
 void renderTree(gps::Shader shader, bool depthPass) {
-    // select active shader program
-    //shader.useShaderProgram();
     glm::mat4 modelTree(1.0f);
     modelTree = glm::scale(modelTree, glm::vec3(0.1f, 0.1f, 0.1f));
     modelTree = glm::translate(modelTree, glm::vec3(0.0f, -20.0f, -10.0f));
     glm::mat3 normalMatrixTree(1.0f);
 
-    //send teapot model matrix data to shader
-    /*if (shader.shaderProgram == myBasicShader.shaderProgram) {
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
-    }*/
     glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelTree));
     if (!depthPass) {
         normalMatrixTree = glm::mat3(glm::inverseTranspose(view * modelTree));
         glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixTree));
     }
-    //glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
-
-
-    //send teapot normal matrix data to shader
-    //glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
-
-    // draw teapot
     tree.Draw(shader);
 }
 
-void renderTeapot2(gps::Shader shader, bool depthPass) {
-    // select active shader program
-    //shader.useShaderProgram();
-    glm::mat4 modelTeapot(1.0f);
-    modelTeapot = glm::translate(modelTeapot, glm::vec3(0.0f, 0.0f, 10.0f));
-    glm::mat3 normalMatrixTeapot(1.0f);
-
-    //send teapot model matrix data to shader
-    /*if (shader.shaderProgram == myBasicShader.shaderProgram) {
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
-    }*/
-    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelTeapot));
-    if (!depthPass) {
-        normalMatrixTeapot = glm::mat3(glm::inverseTranspose(view * modelTeapot));
-        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixTeapot));
-    }
-    //glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
-
-
-    //send teapot normal matrix data to shader
-    //glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
-
-    // draw teapot
-    teapot.Draw(shader);
-}
 void renderBison(gps::Shader shader, bool depthPass) {
     glm::mat4 modelBison(1.0f);
     glm::mat4 viewBison;
     glm::mat4 projectionBison;
     glm::mat3 normalMatrixBison(1.0f);
-    // select active shader program
+
     shader.useShaderProgram();
     modelBison = glm::rotate(90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
     modelBison *= glm::scale(glm::vec3(2.0f, 2.0f, 2.0f));
     modelBison *= glm::translate(glm::vec3(0.0f, -0.7f, 0.0f));
-
-    //send teapot model matrix data to shader
-    /*if (shader.shaderProgram == myBasicShader.shaderProgram) {
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelBison));
-        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
-    }*/
-
 
     glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelBison));
     if (!depthPass) {
         normalMatrixBison = glm::mat3(glm::inverseTranspose(view * modelBison));
         glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
     }
-    //glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
-
-    //send teapot normal matrix data to shader
-    //glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
-
-    // draw teapot
+    
     bison.Draw(shader);
 
     //bison 2
@@ -520,35 +498,11 @@ void renderBison(gps::Shader shader, bool depthPass) {
     bison.Draw(shader);
 }
 
-void renderWall(gps::Shader shader, bool depthPass) {
-    glm::mat4 modelWall(1.0f);
-    //modelWall = glm::scale(modelWall, glm::vec3(0.2f, 0.2f, 0.2f));
-    //modelWall = glm::translate(modelWall, glm::vec3(-33.0f, -10.0f, 1.0f));
-    glm::mat3 normalMatrixWall(1.0f);
-
-    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelWall));
-    if (!depthPass) {
-        normalMatrixWall = glm::mat3(glm::inverseTranspose(view * modelWall));
-        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixWall));
-    }
-
-    wall.Draw(shader);
-}
-
 void renderGround(gps::Shader shader, bool depthPass) {
     glm::mat4 modelGround(1.0f);
     glm::mat4 viewGround;
     glm::mat4 projectionGround;
     glm::mat3 normalMatrixGround(1.0f);
-    //shader.useShaderProgram();
-    //send teapot model matrix data to shader
-    //modelGround = glm::rotate(88.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-    //modelGround *= glm::scale(glm::vec3(1.0f, 0.3f, 0.3f));
-    //modelGround *= glm::translate(glm::vec3(0.0f, -4.0f, 0.0f));
-    //if (shader.shaderProgram == myBasicShader.shaderProgram)
-       // glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
-
-    //glUniformMatrix3fv(glGetUniformLocation(shader.shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
     
     modelGround = glm::mat4(1.0f);
     modelGround *= glm::translate(glm::vec3(0.0f, -2.0f, 0.0f));
@@ -591,23 +545,6 @@ void renderGround(gps::Shader shader, bool depthPass) {
     }
     ground.Draw(shader);
     
-    /*for (int i = 0; i < worldSizeX; i++) {
-        for (int j = 0; j < worldSizeZ; j++) {
-            modelGround = glm::mat4(1.0f);
-            modelGround *= glm::translate(glm::vec3(0.0f, -2.0f, 0.0f));
-            modelGround = glm::translate(modelGround, glm::vec3((-(10 + 20 * (worldSizeX / 2)) + 20 * i), 0, (-(10 + 20 * (worldSizeX / 2)) + 20 * j)));
-            //if (shader.shaderProgram == myBasicShader.shaderProgram)
-                //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelGround));
-            glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelGround));
-
-            if (!depthPass) {
-                normalMatrixGround = glm::mat3(glm::inverseTranspose(view * modelGround));
-                glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixGround));
-            }
-            ground.Draw(shader);
-        }
-    }*/
-    
 }
 
 glm::mat4 lightSpaceMatrix()
@@ -625,13 +562,9 @@ glm::mat4 lightSpaceMatrix()
 }
 void renderScene(gps::Shader shader, bool depthPass) {
     shader.useShaderProgram();
-
-    //renderWall(shader, depthPass);
-
+    renderWall(shader, depthPass);
     renderGround(shader, depthPass);
-    //renderTeapot(shader, depthPass);
     renderBison(shader, depthPass);
-    //renderTeapot2(shader, depthPass);
     renderTree(shader, depthPass);
     renderLamp(shader, depthPass);
 }
@@ -676,7 +609,6 @@ void renderWithBasicShader() {
     timeOfDayLoc = glGetUniformLocation(myBasicShader.shaderProgram, "timeOfDay");
 
     renderScene(myBasicShader, false);
-
 }
 
 void drawWhiteCubeAroundLight() {
@@ -690,14 +622,13 @@ void drawWhiteCubeAroundLight() {
     glUniformMatrix4fv(glGetUniformLocation(lightShader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelLightCube));
 
     lightCube.Draw(lightShader);
-
-    
 }
 
 void renderScene() {
     computeDepthMapAndRender();
     renderWithBasicShader();
-    drawWhiteCubeAroundLight();
+    if(seeLightCube)
+        drawWhiteCubeAroundLight();
 
     skyboxShader.useShaderProgram();
     timeOfDayLoc = glGetUniformLocation(skyboxShader.shaderProgram, "timeOfDay");
@@ -740,13 +671,6 @@ void initialize_shadow_things() {
 
 void initSkyBox()
 {
-    /*faces.push_back("textures/skybox/right.tga");
-    faces.push_back("textures/skybox/left.tga");
-    faces.push_back("textures/skybox/top.tga");
-    faces.push_back("textures/skybox/bottom.tga");
-    faces.push_back("textures/skybox/back.tga");
-    faces.push_back("textures/skybox/front.tga");
-    */
     faces.push_back("textures/skybox3/posx.jpg");
     faces.push_back("textures/skybox3/negx.jpg");
     faces.push_back("textures/skybox3/posy.jpg");
@@ -797,13 +721,6 @@ void processTimePassing() {
     }
 
 }
-
-/*float delta = 0;
-float movementSpeed = 2; // units per second
-void updateDelta(double elapsedSeconds) {
-    delta = delta + movementSpeed * elapsedSeconds;
-}
-double lastTimeStamp = glfwGetTime();*/
 
 int main(int argc, const char * argv[]) {
 
