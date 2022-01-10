@@ -80,7 +80,7 @@ gps::Model3D wall;
 GLfloat angle;
 
 // shaders
-gps::Shader myBasicShader, shadowShader, lightShader, depthMapShader, skyboxShader;
+gps::Shader myBasicShader, lightShader, depthMapShader, skyboxShader;
 
 
 GLenum glCheckError_(const char *file, int line)
@@ -308,9 +308,6 @@ void initShaders() {
     myBasicShader.loadShader(
         "shaders/basic.vert",
         "shaders/basic.frag");
-    shadowShader.loadShader(
-        "shaders/shadow.vert",
-        "shaders/shadow.frag");
     lightShader.loadShader("shaders/lightCube.vert", "shaders/lightCube.frag");
     lightShader.useShaderProgram();
     depthMapShader.loadShader("shaders/depthMapShader.vert", "shaders/depthMapShader.frag");
