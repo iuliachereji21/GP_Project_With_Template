@@ -152,7 +152,6 @@ void rotateAtCollision() {
 }
 
 void CheckForColisionAndMove(gps::MOVE_DIRECTION direction, float speed) {
-    //while (true) {
         gps::Camera newCamera(
             myCamera.getCameraPosition(),
             myCamera.getCameraTarget(),
@@ -162,9 +161,6 @@ void CheckForColisionAndMove(gps::MOVE_DIRECTION direction, float speed) {
         float newz = newCamera.getCameraPosition().z;
         if (newx <= -19 || newx >= 19 || newz <= -19 || newz >= 19) //out
         {
-            //int random = 25 + (std::rand() % (180 - 25 + 1));
-            //myCamera.rotate(0, cameraRotationAngle*random);
-            //myCamera.rotate(0, cameraRotationAngle);
             if (animationOn) {
                 rotate = true;
                 totalTimesToRotate = 25 + (std::rand() % (180 - 25 + 1));
@@ -181,7 +177,6 @@ void CheckForColisionAndMove(gps::MOVE_DIRECTION direction, float speed) {
 
             return;
         }
-    //}
 }
 
 void processCommand() {
@@ -242,8 +237,6 @@ void processMovement() {
         view = myCamera.getViewMatrix();
         myBasicShader.useShaderProgram();
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        // compute normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
     }
     if (pressedKeys[GLFW_KEY_J]) {
         myCamera.rotate(0, -cameraRotationAngle);
@@ -251,8 +244,6 @@ void processMovement() {
         view = myCamera.getViewMatrix();
         myBasicShader.useShaderProgram();
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        // compute normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
     }
     if (pressedKeys[GLFW_KEY_H]) {
         myCamera.rotate(cameraRotationAngle, 0);
@@ -260,8 +251,6 @@ void processMovement() {
         view = myCamera.getViewMatrix();
         myBasicShader.useShaderProgram();
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        // compute normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
     }
     if (pressedKeys[GLFW_KEY_Y]) {
         myCamera.rotate(-cameraRotationAngle, 0);
@@ -269,8 +258,6 @@ void processMovement() {
         view = myCamera.getViewMatrix();
         myBasicShader.useShaderProgram();
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        // compute normal matrix for teapot
-        normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
     }
 }
 
@@ -353,9 +340,6 @@ void initUniforms() {
 	lightColorLoc = glGetUniformLocation(myBasicShader.shaderProgram, "lightColor");
 	// send light color to shader
 	glUniform3fv(lightColorLoc, 1, glm::value_ptr(lightColor));
-
-    glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraTarget"), 1, glm::value_ptr(myCamera.getCameraFrontDirection()));
-    glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraPosition"), 1, glm::value_ptr(myCamera.getCameraPosition()));
 
     glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraFrontDirection"), 1, glm::value_ptr(myCamera.getCameraFrontDirection()));
 
@@ -446,7 +430,6 @@ void renderWall(gps::Shader shader, bool depthPass) {
 
         wall.Draw(shader);
     }
-
 }
 
 
@@ -546,12 +529,7 @@ void renderGround(gps::Shader shader, bool depthPass) {
 
 glm::mat4 lightSpaceMatrix()
 {
-    //glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-    //glm::mat4 lightView = glm::lookAt(myCamera.getCameraPosition() + 5.0f * lightDir, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    //glm::mat4 lightView = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 lightView = glm::lookAt(glm::vec3(0.0f,5.0f,0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    //glm::mat4 lightView = glm::lookAt(lightDir, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    //glm::mat4 lightProjection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, near_plane, far_plane);
     glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 
     glm::mat4 lightSpaceMatrix = lightProjection * lightView;
@@ -585,8 +563,6 @@ void renderWithBasicShader() {
     timeOfDayLoc = glGetUniformLocation(myBasicShader.shaderProgram, "timeOfDay");
     glUniform1f(timeOfDayLoc, timeOfDay);
 
-    glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraTarget"), 1, glm::value_ptr(myCamera.getCameraFrontDirection()));
-    glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraPosition"), 1, glm::value_ptr(myCamera.getCameraPosition()));
     glUniform3fv(glGetUniformLocation(myBasicShader.shaderProgram, "cameraFrontDirection"), 1, glm::value_ptr(myCamera.getCameraFrontDirection()));
 
     glUniform1i(glGetUniformLocation(myBasicShader.shaderProgram, "flashlightOn"), flashlightOn);
@@ -601,7 +577,6 @@ void renderWithBasicShader() {
     glUniform1i(glGetUniformLocation(myBasicShader.shaderProgram, "shadowMap"), 3);
 
 
-    glUniformMatrix4fv(glGetUniformLocation(myBasicShader.shaderProgram, "lightSpaceTrMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix()));
     glUniformMatrix4fv(glGetUniformLocation(myBasicShader.shaderProgram, "lightSpaceTrMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix()));
     timeOfDayLoc = glGetUniformLocation(myBasicShader.shaderProgram, "timeOfDay");
 
