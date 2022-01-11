@@ -25,7 +25,6 @@ gps::SkyBox mySkyBox;
 glm::mat4 model;
 glm::mat4 view;
 glm::mat4 projection;
-glm::mat3 normalMatrix;
 
 // light parameters
 glm::vec3 lightDir;
@@ -172,9 +171,6 @@ void CheckForColisionAndMove(gps::MOVE_DIRECTION direction, float speed) {
         else {
             myCamera.move(direction, speed);
             view = myCamera.getViewMatrix();
-            normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
-            std::cout << "pos: " << myCamera.getCameraPosition().x << " " << myCamera.getCameraPosition().y << " " << myCamera.getCameraPosition().z << "\n";
-
             return;
         }
 }
@@ -306,17 +302,13 @@ void initUniforms() {
     timeOfDayLoc = glGetUniformLocation(myBasicShader.shaderProgram, "timeOfDay");
     glUniform1f(timeOfDayLoc, timeOfDay);
 
-    model = glm::mat4(1.0f);
     modelLoc = glGetUniformLocation(myBasicShader.shaderProgram, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
     view = myCamera.getViewMatrix();
     viewLoc = glGetUniformLocation(myBasicShader.shaderProgram, "view");
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
-    normalMatrix = glm::mat3(glm::inverseTranspose(view * model));
     normalMatrixLoc = glGetUniformLocation(myBasicShader.shaderProgram, "normalMatrix");
-    glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
 	// create projection matrix
     projection = glm::perspective(glm::radians(45.0f), (float)GL_WINDOW_WIDTH / (float)GL_WINDOW_HEIGHT, 0.1f, 1000.0f);
     projectionLoc = glGetUniformLocation(myBasicShader.shaderProgram, "projection");
@@ -725,8 +717,6 @@ int main(int argc, const char * argv[]) {
         }
         else 
             processMovement();
-        
-
 	    renderScene();
 		glfwPollEvents();
 		glfwSwapBuffers(myWindow.getWindow());
