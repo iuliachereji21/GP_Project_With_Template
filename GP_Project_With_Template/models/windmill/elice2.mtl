@@ -1,0 +1,25 @@
+# Blender MTL File: 'cscene.blend'
+# Material Count: 2
+
+newmtl 02___Default.001
+Ns 11.764706
+Ka 0.100633 0.100633 0.100633
+Kd 0.098000 0.098000 0.105900
+Ks 0.387000 0.387000 0.387000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 0.530000
+illum 2
+refl Map__2_Raytrace.tga
+
+newmtl 03___Default.001
+Ns 9.803922
+Ka 0.588200 0.588200 0.588200
+Kd 0.588200 0.588200 0.588200
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd wood-red-dark-172276.jpg
+map_Ka wood-red-dark-172276.jpg

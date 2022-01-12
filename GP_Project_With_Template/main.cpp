@@ -56,6 +56,9 @@ int totalTimesToRotate, currentRotationTimes;
 bool wireframe = false;
 bool seeLightCube = false;
 
+float angle_windmill_increment = 0.12f;
+float angle_windmill = 0;
+
 // camera
 gps::Camera myCamera(
     glm::vec3(0.0f, 0.0f, 7.0f),
@@ -76,6 +79,8 @@ gps::Model3D lightCube;
 gps::Model3D tree;
 gps::Model3D lamp;
 gps::Model3D wall;
+gps::Model3D windmill_building;
+gps::Model3D windmill_spining;
 GLfloat angle;
 
 // shaders
@@ -285,6 +290,8 @@ void initModels() {
     lightCube.LoadModel("models/cube/cube.obj");
     lamp.LoadModel("models/lamp/streetlamp.obj");
     wall.LoadModel("models/farmhouse/Farmhouse.obj");
+    windmill_building.LoadModel("models/windmill/corp.obj");
+    windmill_spining.LoadModel("models/windmill/elice2.obj");
 }
 
 void initShaders() {
@@ -353,6 +360,41 @@ void renderLamp(gps::Shader shader, bool depthPass) {
     }
     
     lamp.Draw(shader);
+}
+
+void renderWindmill(gps::Shader shader, bool depthPass) {
+    glm::mat4 modelWindmill1(1.0f);
+    modelWindmill1 = glm::scale(modelWindmill1, glm::vec3(0.1f, 0.1f, 0.1f));
+    modelWindmill1 = glm::translate(modelWindmill1, glm::vec3(153.0f, -40.0f, -90.0f));
+    glm::mat3 normalMatrixWindmill1(1.0f);
+
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelWindmill1));
+    if (!depthPass) {
+        normalMatrixWindmill1 = glm::mat3(glm::inverseTranspose(view * modelWindmill1));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixWindmill1));
+    }
+
+    windmill_building.Draw(shader);
+
+    glm::mat4 modelWindmill2(1.0f);
+
+    angle_windmill += angle_windmill_increment;
+    if (angle_windmill >= 360)
+        angle_windmill = 0;
+
+    modelWindmill2 = glm::scale(modelWindmill2, glm::vec3(0.1f, 0.1f, 0.1f));
+    modelWindmill2 = glm::translate(modelWindmill2, glm::vec3(76.2f, 17.5f, -93.0f));
+    modelWindmill2 = glm::rotate(modelWindmill2, glm::radians(angle_windmill), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    glm::mat3 normalMatrixWindmill2(1.0f);
+
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelWindmill2));
+    if (!depthPass) {
+        normalMatrixWindmill2 = glm::mat3(glm::inverseTranspose(view * modelWindmill2));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixWindmill2));
+    }
+
+    windmill_spining.Draw(shader);
 }
 
 void renderWall(gps::Shader shader, bool depthPass) {
@@ -522,7 +564,7 @@ void renderGround(gps::Shader shader, bool depthPass) {
 glm::mat4 lightSpaceMatrix()
 {
     glm::mat4 lightView = glm::lookAt(glm::vec3(0.0f,5.0f,0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+    glm::mat4 lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, near_plane, far_plane);
 
     glm::mat4 lightSpaceMatrix = lightProjection * lightView;
     return lightSpaceMatrix;
@@ -534,6 +576,7 @@ void renderScene(gps::Shader shader, bool depthPass) {
     renderBison(shader, depthPass);
     renderTree(shader, depthPass);
     renderLamp(shader, depthPass);
+    renderWindmill(shader, depthPass);
 }
 
 void computeDepthMapAndRender() {
