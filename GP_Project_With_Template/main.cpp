@@ -246,14 +246,14 @@ void processMovement() {
         CheckForColisionAndMove(gps::MOVE_RIGHT, cameraSpeed);
     }
     
-    if (pressedKeys[GLFW_KEY_G]) {
+    if (pressedKeys[GLFW_KEY_N]) {
         myCamera.rotate(0, cameraRotationAngle);
         //update view matrix
         view = myCamera.getViewMatrix();
         myBasicShader.useShaderProgram();
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     }
-    if (pressedKeys[GLFW_KEY_J]) {
+    if (pressedKeys[GLFW_KEY_M]) {
         myCamera.rotate(0, -cameraRotationAngle);
         //update view matrix
         view = myCamera.getViewMatrix();
