@@ -156,7 +156,7 @@ float computeShadowSun()
 	//if the current fragments depth is greater than the value in the depth map, the current fragment is in shadow 
 	//else it is illuminated
 	//float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
-	float bias = 0.005f;
+	float bias = 0.05f;
 	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 	if (normalizedCoords.z > 1.0f)
 		return 0.0f;

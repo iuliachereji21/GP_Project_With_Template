@@ -290,8 +290,8 @@ void initModels() {
     lightCube.LoadModel("models/cube/cube.obj");
     lamp.LoadModel("models/lamp/streetlamp.obj");
     wall.LoadModel("models/farmhouse/Farmhouse.obj");
-    windmill_building.LoadModel("models/windmill/corp.obj");
-    windmill_spining.LoadModel("models/windmill/elice2.obj");
+    windmill_building.LoadModel("models/windmill/Windmill.obj");
+    windmill_spining.LoadModel("models/windmill/Spinner.obj");
 }
 
 void initShaders() {
@@ -564,7 +564,7 @@ void renderGround(gps::Shader shader, bool depthPass) {
 glm::mat4 lightSpaceMatrix()
 {
     glm::mat4 lightView = glm::lookAt(glm::vec3(0.0f,5.0f,0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    glm::mat4 lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, near_plane, far_plane);
+    glm::mat4 lightProjection = glm::ortho(-30.0f, 30.0f, -30.0f, 30.0f, near_plane, far_plane);
 
     glm::mat4 lightSpaceMatrix = lightProjection * lightView;
     return lightSpaceMatrix;
