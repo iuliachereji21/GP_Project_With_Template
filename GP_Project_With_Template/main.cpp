@@ -81,6 +81,7 @@ gps::Model3D lamp;
 gps::Model3D wall;
 gps::Model3D windmill_building;
 gps::Model3D windmill_spining;
+gps::Model3D fence;
 GLfloat angle;
 
 // shaders
@@ -292,6 +293,8 @@ void initModels() {
     wall.LoadModel("models/farmhouse/Farmhouse.obj");
     windmill_building.LoadModel("models/windmill/Windmill.obj");
     windmill_spining.LoadModel("models/windmill/Spinner.obj");
+
+    fence.LoadModel("models/fence/woodfenceobj.obj");
 }
 
 void initShaders() {
@@ -360,6 +363,32 @@ void renderLamp(gps::Shader shader, bool depthPass) {
     }
     
     lamp.Draw(shader);
+}
+
+void renderFence(gps::Shader shader, bool depthPass) {
+    glm::mat4 modelLamp(1.0f);
+    modelLamp = glm::scale(modelLamp, glm::vec3(0.05f, 0.05f, 0.05f));
+    modelLamp = glm::translate(modelLamp, glm::vec3(-360.0f, -9.0f, 390.0f));
+    glm::mat3 normalMatrixLamp(1.0f);
+
+    glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelLamp));
+    if (!depthPass) {
+        normalMatrixLamp = glm::mat3(glm::inverseTranspose(view * modelLamp));
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixLamp));
+    }
+
+    fence.Draw(shader);
+
+    for (int i = 0; i < 7; i++) {
+        modelLamp = glm::translate(modelLamp, glm::vec3(100.0f, 0.0f, 0.0f));
+        glUniformMatrix4fv(glGetUniformLocation(shader.shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(modelLamp));
+        if (!depthPass) {
+            normalMatrixLamp = glm::mat3(glm::inverseTranspose(view * modelLamp));
+            glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixLamp));
+        }
+
+        fence.Draw(shader);
+    }
 }
 
 void renderWindmill(gps::Shader shader, bool depthPass) {
@@ -577,6 +606,7 @@ void renderScene(gps::Shader shader, bool depthPass) {
     renderTree(shader, depthPass);
     renderLamp(shader, depthPass);
     renderWindmill(shader, depthPass);
+    renderFence(shader, depthPass);
 }
 
 void computeDepthMapAndRender() {
