@@ -55,6 +55,8 @@ bool rotate = false;
 int totalTimesToRotate, currentRotationTimes;
 bool wireframe = false;
 bool seeLightCube = false;
+bool previewOn = false;
+float anglePreview = 0.0f;
 
 float angle_windmill_increment = 0.12f;
 float angle_windmill = 0;
@@ -209,6 +211,17 @@ void processCommand() {
     }
     if (pressedKeys[GLFW_KEY_C]) {
         seeLightCube = not seeLightCube;
+    }
+    if (pressedKeys[GLFW_KEY_S]) {
+        previewOn = not previewOn;
+        if (!previewOn)
+        {
+            gps::Camera newCamera(
+                glm::vec3(0.0f, 0.0f, 7.0f),
+                glm::vec3(0.0f, 0.0f, -10.0f),
+                glm::vec3(0.0f, 1.0f, 0.0f));
+            myCamera = newCamera;
+        }
     }
 }
 
@@ -661,7 +674,16 @@ void drawWhiteCubeAroundLight() {
     lightCube.Draw(lightShader);
 }
 
+void previewFunction() {
+    if (previewOn) {
+        anglePreview += 0.2f;
+        myCamera.scenePreview(anglePreview);
+    }
+}
+
 void renderScene() {
+    previewFunction();
+
     computeDepthMapAndRender();
     renderWithBasicShader();
     if(seeLightCube)
@@ -759,6 +781,7 @@ void processTimePassing() {
 
 }
 
+
 int main(int argc, const char * argv[]) {
 
     try {
@@ -788,8 +811,12 @@ int main(int argc, const char * argv[]) {
             else
                 CheckForColisionAndMove(gps::MOVE_FORWARD, cameraSpeed);
         }
-        else 
-            processMovement();
+        else {
+            if (!previewOn) {
+                processMovement();
+            }
+        }
+            
 	    renderScene();
 		glfwPollEvents();
 		glfwSwapBuffers(myWindow.getWindow());

@@ -12,6 +12,7 @@ namespace gps {
         this->cameraRightDirection = glm::normalize(glm::cross(this->cameraFrontDirection, this->cameraUpDirection));
 
     }
+    
     glm::vec3 Camera::getCameraPosition() {
         return this->cameraPosition;
     }
@@ -78,5 +79,19 @@ namespace gps {
         cameraFrontDirection = glm::rotate(glm::mat4(1.0f), -pitch, cameraRightDirection) * glm::vec4(cameraFrontDirection, 0.0f);
         cameraRightDirection = glm::normalize(glm::cross(cameraFrontDirection, glm::vec3(0.0f, 1.0f, 0.0f)));
         cameraTarget = cameraPosition + cameraFrontDirection;
+    }
+
+    void Camera::scenePreview(float angle) {
+        // set the camera
+        this->cameraPosition = glm::vec3(0.0, 15.0, 30.0);
+
+        // rotate with specific angle around Y axis
+        glm::mat4 r = glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(0, 1, 0));
+
+        // compute the new position of the camera 
+        // previous position * rotation matrix
+        this->cameraPosition = glm::vec4(r * glm::vec4(this->cameraPosition, 1));
+        this->cameraFrontDirection = glm::normalize(cameraTarget - cameraPosition);
+        cameraRightDirection = glm::normalize(glm::cross(cameraFrontDirection, glm::vec3(0.0f, 1.0f, 0.0f)));
     }
 }
