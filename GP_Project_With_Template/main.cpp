@@ -74,7 +74,7 @@ const int GL_WINDOW_HEIGHT = 900;
 GLboolean pressedKeys[1024];
 // models
 gps::Model3D ground;
-gps::Model3D bison;
+gps::Model3D bull;
 gps::Model3D lightCube;
 gps::Model3D tree;
 gps::Model3D lamp;
@@ -286,7 +286,7 @@ void initOpenGLState() {
 
 void initModels() {
     ground.LoadModel("models/ground/ground.obj");
-    bison.LoadModel("models/bison/Bison.obj");
+    bull.LoadModel("models/bull/bull.obj");
     tree.LoadModel("models/tree/trees9.obj");
     lightCube.LoadModel("models/cube/cube.obj");
     lamp.LoadModel("models/lamp/streetlamp.obj");
@@ -527,7 +527,7 @@ void renderBison(gps::Shader shader, bool depthPass) {
         glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
     }
     
-    bison.Draw(shader);
+    bull.Draw(shader);
 
     //bison 2
     modelBison *= glm::translate(glm::vec3(1.0f, 0.0f, -1.0f));
@@ -538,7 +538,7 @@ void renderBison(gps::Shader shader, bool depthPass) {
         glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrixBison));
     }
     
-    bison.Draw(shader);
+    bull.Draw(shader);
 }
 
 void renderGround(gps::Shader shader, bool depthPass) {
